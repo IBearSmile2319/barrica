@@ -35,6 +35,8 @@ Dónde está Barrica, qué le falta y el plan para acercarse a lo que hace Cross
 ## Plan
 
 ### Fase 1: motor propio (independencia de CrossOver)
+Diseño completo, con rendimiento en juegos, mediciones e hitos: [docs/MOTOR.md](docs/MOTOR.md).
+
 - **Fuente:** `crossover-sources-26.3.0.tar.gz` de codeweavers.com/crossover/source. La licencia de CrossOver, sección 2, permite compilar versiones alternativas de su Wine.
 - **Herramientas:** `mingw-w64`, `bison` 3 o superior, y `freetype` compilado para x86_64. Se compila en x86_64 bajo Rosetta con el WoW64 nuevo, que soporta juegos de 32 bits.
 - **Script:** `engine/build.sh`, escrito por nosotros, que deja el motor en `~/Library/Application Support/Barrica/Engines/<versión>/`.
