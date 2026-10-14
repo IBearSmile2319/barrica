@@ -1,7 +1,9 @@
 /* Prueba de humo del motor (la compila y la corre engine/check.sh).
  *   smoke.exe https   HTTPS por schannel: comprueba que gnutls carga desde el motor.
  *   smoke.exe d3d11   crea un dispositivo D3D11 y dice qué capa lo sirve.
- *   smoke.exe d3d12   crea un dispositivo D3D12 y dice su nivel máximo (12_2 con D3DMetal). */
+ *   smoke.exe d3d12   crea un dispositivo D3D12 y dice su nivel máximo (12_2 con D3DMetal).
+ *   smoke.exe mic     graba 1,5 s: la primera vez, macOS pide permiso de micrófono a quien lanzó Wine
+ *                     (no va en check.sh; se lanza desde Barrica para que el permiso sea suyo). */
 #define COBJMACROS
 #include <windows.h>
 #include <winhttp.h>
@@ -63,8 +65,31 @@ static int d3d12(void)
     return 0;
 }
 
+static int mic(void)
+{
+    static short samples[48000];
+    WAVEFORMATEX format = {WAVE_FORMAT_PCM, 1, 48000, 96000, 2, 16, 0};
+    WAVEHDR header = {(char *)samples, sizeof(samples)};
+    HWAVEIN in;
+    MMRESULT r = waveInOpen(&in, WAVE_MAPPER, &format, 0, 0, CALLBACK_NULL);
+    if (r != MMSYSERR_NOERROR)
+    {
+        printf("mic: error %u\n", r);
+        return 1;
+    }
+    waveInPrepareHeader(in, &header, sizeof(header));
+    waveInAddBuffer(in, &header, sizeof(header));
+    waveInStart(in);
+    Sleep(1500);
+    waveInReset(in);
+    waveInUnprepareHeader(in, &header, sizeof(header));
+    waveInClose(in);
+    printf("mic: %lu bytes grabados\n", header.dwBytesRecorded);
+    return header.dwBytesRecorded ? 0 : 1;
+}
+
 int main(int argc, char **argv)
 {
     const char *mode = argc > 1 ? argv[1] : "https";
-    return !strcmp(mode, "d3d11") ? d3d11() : !strcmp(mode, "d3d12") ? d3d12() : https();
+    return !strcmp(mode, "d3d11") ? d3d11() : !strcmp(mode, "d3d12") ? d3d12() : !strcmp(mode, "mic") ? mic() : https();
 }

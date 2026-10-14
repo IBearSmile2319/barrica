@@ -10,7 +10,7 @@ LAYERS=$HERE/dist/lib/wine-layers
 export WINEPREFIX=$TMP/prefix WINEDEBUG=-all WINEDLLPATH=$LAYERS/wined3d MVK_CONFIG_LOG_LEVEL=0
 rm -rf "$WINEPREFIX"
 mkdir -p "$TMP"
-"$(brew --prefix)/bin/x86_64-w64-mingw32-gcc" -O2 -o "$TMP/smoke.exe" "$HERE/smoke.c" -lwinhttp -ld3d11 -ld3d12 -ldxguid
+"$(brew --prefix)/bin/x86_64-w64-mingw32-gcc" -O2 -o "$TMP/smoke.exe" "$HERE/smoke.c" -lwinhttp -ld3d11 -ld3d12 -ldxguid -lwinmm
 
 "$WINE" --version
 "$WINE" wineboot -u

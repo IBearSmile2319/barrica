@@ -166,6 +166,13 @@ Lo que hace falta en Barrica:
 
 ## 8. Parches propios (lo que CrossOver no nos deja hacer)
 
+En `engine/patches/`; `build.sh` los aplica sobre las fuentes y salta los que ya estén. Marcados `BARRICA HACK` en el código.
+
+**Hechos:**
+- **0001, permiso de micrófono sin congelar** (`winecoreaudio.drv/authorization.m`): Wine esperaba la respuesta del diálogo de macOS para siempre. Si el diálogo no puede salir, por ejemplo porque la app que lanzó Wine no declara `NSMicrophoneUsageDescription`, o si queda tapado por un juego a pantalla completa, CS2 se quedaba congelado al pulsar la tecla de voz. Ahora espera 10 s como máximo y sigue sin micro. También corrige el orden de `signal`, que podía leer el resultado antes de tiempo. Además, `bundle.sh` declara la clave en Barrica.app.
+- **0002, interfaz de Steam en negro** (`kernelbase/process.c`): CEF compone en su proceso GPU y pinta sobre una ventana del proceso principal, y `winemac.drv` no dibuja en ventanas de otro proceso. Salía negro con cualquier capa, incluso con la GPU desactivada. Al proceso principal de `steamwebhelper.exe` se le añade `--in-process-gpu`; con eso la interfaz se ve, también con D3DMetal. CrossOver hace algo equivalente desde su parte cerrada.
+
+**Ideas:**
 1. **Micrófono:** el remuestreo de captura de `winecoreaudio` es el sospechoso del audio robótico en CS2.
 2. **Ratón:** entrada en crudo y sensibilidad 1:1 para shooters.
 3. **Ajustes por juego** aplicados por el propio motor, sin tocar el registro a mano.

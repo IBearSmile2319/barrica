@@ -23,6 +23,7 @@ cat > "$APP/Contents/Info.plist" <<EOF
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSMicrophoneUsageDescription</key><string>Los juegos y programas de Windows usan el micrófono, por ejemplo para el chat de voz.</string>
 </dict></plist>
 EOF
 echo "$APP"

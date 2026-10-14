@@ -1,0 +1,21 @@
+--- a/wine/dlls/winecoreaudio.drv/authorization.m
++++ b/wine/dlls/winecoreaudio.drv/authorization.m
+@@ -87,11 +87,16 @@
+         semaphore = dispatch_semaphore_create(0);
+         [AVCaptureDevice requestAccessForMediaType:AVMediaTypeAudio
+                                  completionHandler:^(BOOL granted){
++            ret = granted ? 1 : 0;  /* BARRICA HACK: antes de avisar, no después */
+             dispatch_semaphore_signal(semaphore);
+-            ret = granted ? 1 : 0;
+         }];
+ 
+-        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
++        /* BARRICA HACK: sin límite, el juego se congela si macOS no puede mostrar el diálogo
++         * (la app que lanzó Wine no declara NSMicrophoneUsageDescription) o si queda detrás
++         * de un juego a pantalla completa. A los 10 s seguimos sin micrófono. El bloque retiene
++         * semaphore y ret (__block), así que puede llegar tarde sin peligro. */
++        if (dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC)))
++            ret = 0;
+         dispatch_release(semaphore);
+         [[NSNotificationCenter defaultCenter] postNotificationName:WineDidShowPermissionDialogNotification
+                                                             object:nil];

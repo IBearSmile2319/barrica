@@ -56,6 +56,16 @@ fetch() {
     mv sources src
 }
 
+# Parches propios (engine/patches/*.patch, -p1 desde src/). Los ya aplicados se saltan.
+patches() {
+    for p in "$HERE"/patches/*.patch; do
+        [ -f "$p" ] || continue
+        if patch -d "$SRC" -p1 -R -s -f --dry-run < "$p" > /dev/null; then continue; fi
+        step "Parche $(basename "$p")"
+        patch -d "$SRC" -p1 -s < "$p"
+    done
+}
+
 # gnutls (schannel: HTTPS en launchers y juegos) y freetype (fuentes). gmp y nettle van estáticos
 # dentro de gnutls, así el motor solo lleva dos dylibs. Todo sale del tarball de CodeWeavers.
 deps() {
@@ -183,12 +193,14 @@ addons() {
 
 case "${1:-all}" in
     wine)
+        patches
         wine
         layers
         addons
         ;;
     all)
         fetch
+        patches
         deps
         wine
         layers
