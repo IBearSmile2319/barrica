@@ -32,7 +32,9 @@ const HELP: &str = "Barrica: bottles de Wine para macOS.
   barrica install <app> [bottle]          instala una app del catálogo (en un bottle nuevo si no existe)
   barrica winetricks <bottle> <verbos...> p. ej. vcrun2022 dotnet48
   barrica engines                         motores Wine detectados
-  barrica engine <ruta a wine>            elegir motor";
+  barrica engine <ruta a wine>            elegir motor
+  barrica gptk <carpeta>                  instala D3DMetal del Game Porting Toolkit de Apple
+                                          (el volumen «Evaluation environment for Windows games»)";
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -50,7 +52,8 @@ fn cli(args: &[String]) -> cx::Result<()> {
         "list" => {
             for b in cx::list() {
                 let size = cx::size(&b.path).map(cx::human).unwrap_or_default();
-                println!("{:<28} {:<6} {:<6} {size}", b.name, b.config.windows, format!("{:?}", b.config.arch));
+                let on = if cx::is_running(&b) { "  ● en ejecución" } else { "" };
+                println!("{:<28} {:<6} {:<6} {size}{on}", b.name, b.config.windows, format!("{:?}", b.config.arch));
             }
         }
         "create" => {
@@ -130,6 +133,7 @@ fn cli(args: &[String]) -> cx::Result<()> {
         "winetricks" => cx::winetricks(&bottle()?, &args[2..])?,
         "engines" => cx::engines().iter().for_each(|e| println!("{}\t{}", e.label, e.wine.display())),
         "engine" => cx::Settings { engine: Some(a(1)?.into()), ..cx::Settings::load() }.save()?,
+        "gptk" => println!("D3DMetal instalado en {}", cx::install_gptk(Path::new(&a(1)?))?.display()),
         "help" | "-h" | "--help" => println!("{HELP}"),
         other => return Err(format!("Comando desconocido «{other}».\n\n{HELP}")),
     }

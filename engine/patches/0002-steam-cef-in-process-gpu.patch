@@ -1,0 +1,30 @@
+--- a/wine/dlls/kernelbase/process.c
++++ b/wine/dlls/kernelbase/process.c
+@@ -567,6 +567,27 @@
+         }
+     }
+ 
++    /* BARRICA HACK: la interfaz de Steam (CEF) compone la imagen en su proceso GPU y la pinta
++     * sobre una ventana del proceso principal. winemac.drv no dibuja en ventanas de otro proceso
++     * y se ve negra, incluso con la GPU desactivada. Con --in-process-gpu todo va en el proceso
++     * principal. Solo al principal (sin --type=): los hijos heredan el modo. */
++    if (wcsstr( tidy_cmdline, L"steamwebhelper.exe" ) && !wcsstr( tidy_cmdline, L"--type=" )
++        && !wcsstr( tidy_cmdline, L"--in-process-gpu" ))
++    {
++        static const WCHAR extra[] = L" --in-process-gpu";
++        SIZE_T len = lstrlenW( tidy_cmdline );
++        WCHAR *cmd = RtlAllocateHeap( GetProcessHeap(), 0, (len + ARRAY_SIZE(extra)) * sizeof(WCHAR) );
++
++        if (cmd)
++        {
++            memcpy( cmd, tidy_cmdline, len * sizeof(WCHAR) );
++            memcpy( cmd + len, extra, sizeof(extra) );
++            if (tidy_cmdline != cmd_line) RtlFreeHeap( GetProcessHeap(), 0, tidy_cmdline );
++            tidy_cmdline = cmd;
++            FIXME( "HACK: steamwebhelper.exe con --in-process-gpu\n" );
++        }
++    }
++
+     /* Warn if unsupported features are used */
+ 
+     if (flags & (IDLE_PRIORITY_CLASS | HIGH_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS |

@@ -1079,7 +1079,7 @@ impl App {
                             "Este bottle usa el motor de CrossOver: gráficos, MSync y versión de Windows se cambian allí.",
                         );
                         if ui.button("Abrir CrossOver").clicked() {
-                            actions.push(Action::Open("/Applications/CrossOver.app".into()));
+                            actions.push(Action::Open(cx::crossover_app()));
                         }
                     } else {
                         self.settings_view(ui, &b, actions);

@@ -29,7 +29,18 @@ Requisitos: macOS en Apple Silicon con Rosetta, y Rust 1.88 o superior.
 open target/Barrica.app
 ```
 
-Para bottles propios (no vinculados) hace falta un motor Wine de código abierto. Homebrew desactivó las casks de WineHQ el 2026-09-01, así que hay que descargarlo de <https://wiki.winehq.org/MacOS> y elegirlo en **Motor → Elegir ejecutable de wine…**. Barrica también detecta Game Porting Toolkit en `/usr/local/opt/game-porting-toolkit`.
+Para bottles propios (no vinculados), Barrica trae su propio motor: el Wine 11 de CrossOver 26.3 compilado desde el código libre de CodeWeavers, con MSync, MoltenVK y DXMT. Se compila una vez (sin sudo; unos 30 minutos) y `bundle.sh` lo mete dentro de la app:
+
+```sh
+brew install bison mingw-w64 autoconf automake libtool cmake
+engine/build.sh             # deja el motor en engine/dist (detalles en docs/MOTOR.md)
+engine/check.sh             # prueba de humo: HTTPS y D3D11 por WineD3D, DXMT y D3DMetal
+./bundle.sh
+```
+
+D3DMetal (DirectX 11/12, lo que usa CrossOver para CS2) es de Apple y no viene con Barrica. Baja el Game Porting Toolkit de developer.apple.com, monta su imagen «Evaluation environment for Windows games» y ejecuta `barrica gptk "/Volumes/Evaluation environment for Windows games 3.0"`. Se instala en `~/Library/Application Support/Barrica/Layers/d3dmetal/` sin modificarlo, porque su licencia lo prohíbe.
+
+También sirven otros motores: Wine de <https://wiki.winehq.org/MacOS> (Homebrew desactivó sus casks el 2026-09-01), motores en `~/Library/Application Support/Barrica/Engines/<nombre>/` o Game Porting Toolkit en `/usr/local/opt/game-porting-toolkit`. Se eligen en **Motor → Elegir ejecutable de wine…**.
 
 ## CLI
 
@@ -50,6 +61,7 @@ barrica help                                  # todos los comandos
 |---|---|
 | Bottles | `~/Library/Application Support/Barrica/Bottles/<nombre>/` (WINEPREFIX + `barrica.toml`) |
 | Bottles vinculados | Solo `barrica.toml` con `crossover = "<bottle>"`; los datos siguen en CrossOver |
+| Respaldo de CrossOver | `~/Library/Application Support/Barrica/Backups/CrossOver-<versión>.app`; si falta `/Applications/CrossOver.app`, los vinculados usan este |
 | Snapshots | `~/Library/Application Support/Barrica/Snapshots/<bottle>/<etiqueta>/` |
 | Registros | `~/Library/Application Support/Barrica/Logs/<bottle>/` |
 | Ajustes | `~/Library/Application Support/Barrica/settings.toml` |
@@ -66,7 +78,8 @@ barrica help                                  # todos los comandos
 - **`catalog/catalog.toml`:** las apps del catálogo (la app descarga la versión más nueva).
 - **`src/main.rs`:** sin argumentos abre la app; con argumentos funciona como CLI.
 - **`tools/render_icon.py`:** genera `assets/icon.png` y `assets/Barrica.icns`.
-- **`bundle.sh`:** empaqueta `target/Barrica.app`.
+- **`bundle.sh`:** empaqueta `target/Barrica.app`, con el motor de `engine/dist` dentro si está compilado.
+- **`engine/`:** `build.sh` compila el motor, y `check.sh` con `smoke.c` lo prueba.
 
 ```sh
 cargo test                  # incluye un ciclo completo con un `wine` falso
