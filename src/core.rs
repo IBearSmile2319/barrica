@@ -56,6 +56,9 @@ fn crossover_bin() -> PathBuf {
 pub struct Settings {
     pub engine: Option<PathBuf>,
     pub default_bottle: Option<String>,
+    /// De dónde se descarga el catálogo de instalación (por defecto, el del repositorio).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub catalog_url: Option<String>,
 }
 
 impl Settings {
@@ -957,7 +960,7 @@ mod tests {
             std::env::set_var("BARRICA_HOME", tmp.join("data"));
             std::env::set_var("BARRICA_TRASH", tmp.join("trash"));
         }
-        Settings { engine: Some(bin.join("wine")), default_bottle: None }.save().unwrap();
+        Settings { engine: Some(bin.join("wine")), ..Default::default() }.save().unwrap();
         let calls = || fs::read_to_string(tmp.join("data/calls.txt")).unwrap_or_default();
 
         let b = create("Juegos", "win7", Arch::Win64).unwrap();
@@ -1020,6 +1023,35 @@ mod tests {
         assert!(renamed.contains("Ya existe"));
         trash(&linked).unwrap();
         assert!(cx.join("cxbottle.conf").exists() && get("CS2 vinculado").is_err());
+
+        // Catálogo: descarga verificada (curl entiende file://), bottle nuevo con la receta y el instalador.
+        use crate::catalog::{self, Catalog, Target};
+        let setup = tmp.join("Test Setup.exe");
+        fs::write(&setup, "MZ").unwrap();
+        let recipe = |sha: &str| {
+            let text = format!(
+                "format = 1\n[[app]]\nid = \"test\"\nname = \"Test\"\ncategory = \"x\"\nsummary = \"s\"\n\
+                 url = \"file://{}\"\nsha256 = \"{sha}\"\ngraphics = \"wined3d\"\nenv = {{ A = \"1\" }}\n\
+                 exe = [\"Program Files/Test/test.exe\"]\n",
+                setup.display().to_string().replace(' ', "%20")
+            );
+            Catalog::parse(&text).unwrap()
+        };
+        let bad = recipe("00");
+        let err = catalog::install(&bad.apps[0], &Target::New("Test".into()), &|_| {}).unwrap_err();
+        assert!(err.contains("sha256") && get("Test").is_err()); // ni bottle a medias
+        let good = recipe(&catalog::sha256(&setup).unwrap());
+        let steps = std::sync::Mutex::new(Vec::new());
+        let done = catalog::install(&good.apps[0], &Target::New("Test".into()), &|s| steps.lock().unwrap().push(s)).unwrap();
+        assert_eq!(done.bottle, "Test");
+        assert!(steps.lock().unwrap().contains(&catalog::Step::Installing));
+        assert!(calls().contains("start /wait /unix") && calls().contains("Downloads/test/Test Setup.exe"));
+        let t = get("Test").unwrap();
+        assert_eq!((t.config.graphics, t.config.env["A"].as_str()), (Graphics::Wined3d, "1"));
+        assert!(catalog::installed(&good, &list()).is_empty());
+        fs::create_dir_all(t.drive_c().join("Program Files/Test")).unwrap();
+        fs::write(t.drive_c().join("Program Files/Test/test.exe"), "").unwrap();
+        assert_eq!(catalog::installed(&good, &list())["test"].0, "Test");
 
         let _ = fs::remove_dir_all(&tmp);
     }

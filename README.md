@@ -6,6 +6,7 @@ Un **bottle** es un Windows aparte (un `WINEPREFIX`) donde instalas programas y 
 
 ## Qué hace hoy
 
+- **Descubrir:** un catálogo de apps y tiendas de Windows (Steam, Battle.net, Epic, GOG Galaxy, EA app, 7-Zip, Notepad++…) con sus logos, una ficha por app y su progreso de instalación. Cada app se instala en su propio bottle, preparado como ella necesita. El catálogo se actualiza solo, sin publicar versiones de Barrica: ver [catalog/README.md](catalog/README.md).
 - **Bottles:** crear (Windows 98 a 11, 32 o 64 bits), renombrar, duplicar, exportar e importar, y mover a la Papelera (nunca borra).
 - **Biblioteca:** juegos de Steam con su portada y banner reales, y launchers directos (`steam.exe -applaunch <id>`). Aplicaciones con el icono que CrossOver ya extrajo, o con su inicial si no hay icono.
 - **Ejecutar:** `.exe`, `.msi`, `.lnk` y `.bat`. Cada ejecución guarda su salida en *Registros*.
@@ -38,6 +39,8 @@ barrica link-crossover "Counter-Strike 2"     # usar un bottle de CrossOver con 
 barrica programs "Counter-Strike 2"
 barrica run "Counter-Strike 2" ".../Steam/steam.exe" -applaunch 730
 barrica snapshot "Counter-Strike 2" "antes de los mods"
+barrica catalog tiendas                       # apps que Barrica sabe instalar
+barrica install steam                         # la instala en un bottle nuevo llamado «Steam"
 barrica help                                  # todos los comandos
 ```
 
@@ -50,13 +53,17 @@ barrica help                                  # todos los comandos
 | Snapshots | `~/Library/Application Support/Barrica/Snapshots/<bottle>/<etiqueta>/` |
 | Registros | `~/Library/Application Support/Barrica/Logs/<bottle>/` |
 | Ajustes | `~/Library/Application Support/Barrica/settings.toml` |
+| Catálogo y logos | `~/Library/Application Support/Barrica/Catalog/` (caché; se baja solo) |
+| Instaladores | `~/Library/Application Support/Barrica/Downloads/<app>/` (se borran al terminar) |
 
 `BARRICA_HOME` cambia la carpeta raíz, por ejemplo para usar otro disco o para los tests.
 
 ## Estructura
 
 - **`src/core.rs`:** toda la lógica (bottles, motores, ejecución, snapshots, CrossOver). No depende de la interfaz y tiene sus tests.
-- **`src/gui.rs`:** la app (egui), con tema propio en color vino y Avenir Next del sistema.
+- **`src/catalog.rs`:** el catálogo de instalación: recetas, versiones de winget-pkgs, descargas verificadas e instalación.
+- **`src/gui.rs`:** la app (egui), con tema propio en color vino y Avenir Next del sistema. **`src/gui/discover.rs`** es la pantalla Descubrir.
+- **`catalog/catalog.toml`:** las apps del catálogo (la app descarga la versión más nueva).
 - **`src/main.rs`:** sin argumentos abre la app; con argumentos funciona como CLI.
 - **`tools/render_icon.py`:** genera `assets/icon.png` y `assets/Barrica.icns`.
 - **`bundle.sh`:** empaqueta `target/Barrica.app`.

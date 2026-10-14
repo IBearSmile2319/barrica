@@ -20,7 +20,7 @@ Dónde está Barrica, qué le falta y el plan para acercarse a lo que hace Cross
 | 1 | Motor Wine propio | Sin motor; Homebrew desactivó WineHQ | Los bottles propios no pueden ejecutar nada |
 | 2 | Instalar DXVK, DXMT y MoltenVK en el bottle | La opción «Gráficos» solo pone variables y overrides | Los juegos DX10/11 no usan esas capas aunque estén elegidas |
 | 3 | D3DMetal propio | Solo vía CrossOver (vinculado) o Game Porting Toolkit | CS2 y DX11/12 dependen de CrossOver |
-| 4 | Catálogo de instalación (como CrossTie) | Solo «Ejecutar…» con el instalador | Instalar Steam, Battle.net, etc. es manual |
+| 4 | Catálogo de instalación (como CrossTie) | Hecho: «Descubrir» con 20 apps que se actualizan solas | Falta probar cada receta en un Mac real, con motor propio y con bottles vinculados |
 | 5 | Dependencias (vcredist, .NET, fuentes) | `barrica winetricks` en la CLI | Nada en la interfaz; los vinculados usan CrossOver |
 | 6 | Integración con macOS | Nada | Sin launchers en Launchpad/Dock, sin asociaciones de archivos, sin abrir `.exe` desde Finder ni arrastrar y soltar |
 | 7 | Canales de log (`WINEDEBUG`) en la interfaz | Solo `BARRICA_DEBUG` en la CLI | Diagnosticar exige terminal |
@@ -49,9 +49,10 @@ Diseño completo, con rendimiento en juegos, mediciones e hitos: [docs/MOTOR.md]
 - **Prueba:** CS2 en un clon de su bottle, para comparar rendimiento y voz con CrossOver.
 
 ### Fase 3: instalación guiada (estilo CrossTie)
-- **Recetas en TOML:** URL, sha256, dependencias, pasos posteriores y versión de Windows recomendada.
-- **Catálogo inicial:** Steam, Battle.net, Epic, GOG Galaxy y EA App, con buscador en la app.
+- **Hecho:** recetas en TOML (`catalog/catalog.toml`) que la app descarga sola; versiones de winget-pkgs o del instalador fijo del fabricante, con sha256 cuando lo hay; pantalla «Descubrir» con logos, buscador, categorías, ficha y progreso; `barrica catalog` y `barrica install`.
+- **Falta:** probar cada receta en un Mac real y anotar en ella lo que necesite (dependencias, gráficos, avisos).
 - **Dependencias propias:** vcredist, .NET y fuentes, sin necesitar winetricks.
+- **Desinstalar desde la ficha** y avisar cuando una app del catálogo cambie de receta.
 
 ### Fase 4: integración con macOS
 - **Launchers como `.app`:** uno por programa en `~/Applications/Barrica/`, para Dock, Launchpad y Spotlight. Equivale a «cxmenu» de CrossOver.
