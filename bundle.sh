@@ -8,6 +8,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp target/release/barrica "$APP/Contents/MacOS/barrica"
 cp assets/Barrica.icns "$APP/Contents/Resources/"  # se regenera con tools/render_icon.py
+# Motor propio (engine/build.sh lo deja en engine/dist): va dentro de la app y es el motor por defecto.
+[ -d engine/dist ] && cp -Rc engine/dist "$APP/Contents/Resources/engine"
 VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
 cat > "$APP/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>

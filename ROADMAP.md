@@ -5,21 +5,23 @@ Dónde está Barrica, qué le falta y el plan para acercarse a lo que hace Cross
 ## Estado actual (0.1)
 
 **Funciona y está probado:**
-- **Núcleo:** 3 tests, incluido un ciclo completo con un `wine` falso. Cubren crear, lanzar, programas y juegos de Steam, software instalado, snapshots y restaurar, duplicar, renombrar, Papelera, exportar e importar, importar y vincular CrossOver.
+- **Núcleo:** 4 tests, incluido un ciclo completo con un `wine` falso. Cubren crear, lanzar, programas y juegos de Steam, software instalado, snapshots y restaurar, duplicar, renombrar, Papelera, exportar e importar, importar y vincular CrossOver, motores instalados, capas gráficas y el respaldo de CrossOver.
 - **Bottles vinculados:** Barrica arrancó el motor de CrossOver sobre el bottle real de CS2 y leyó su software instalado.
+- **Motor propio (hito M1, 2026-10-13):** `engine/build.sh` compila el Wine 11 de CrossOver 26.3 y `bundle.sh` lo mete en Barrica.app. En un bottle creado con él abren el Bloc de notas y `winecfg`, con MSync activo. `engine/check.sh` pasa: HTTPS (gnutls), D3D11 por WineD3D (nivel 9_3), **por DXMT (nivel 11_0, directo a Metal) y por D3DMetal (11_0, y D3D12 nivel 12_2)**, este instalado con `barrica gptk`. Probado con GPTK 3.0 y 4.0 beta 3.
 - **Interfaz:** revisada con capturas reales de la biblioteca con arte de Steam, el banner, las pestañas, el formulario de bottle nuevo y la pantalla vacía.
 
 **Sin probar todavía:**
-- Ejecutar programas con un motor propio, porque no hay ninguno instalado.
+- Steam y un juego DX11 con el motor propio (hito M2).
+- Un juego real con D3DMetal y el motor propio (hito M3), comparando GPTK 3.0 con 4.0 beta 3.
 - Abrir CS2 desde Barrica de principio a fin.
 
 ## Lo que falta (limitaciones conocidas)
 
 | # | Falta | Hoy | Impacto |
 |---|---|---|---|
-| 1 | Motor Wine propio | Sin motor; Homebrew desactivó WineHQ | Los bottles propios no pueden ejecutar nada |
-| 2 | Instalar DXVK, DXMT y MoltenVK en el bottle | La opción «Gráficos» solo pone variables y overrides | Los juegos DX10/11 no usan esas capas aunque estén elegidas |
-| 3 | D3DMetal propio | Solo vía CrossOver (vinculado) o Game Porting Toolkit | CS2 y DX11/12 dependen de CrossOver |
+| 1 | Motor propio: SDL, GStreamer y CUPS | Compilado sin ellos | Mandos solo por IOHID, sin vídeos de Media Foundation, sin imprimir |
+| 2 | DXVK en el motor propio | MoltenVK 1.4.2 ya va dentro; DXMT y WineD3D son capas | DXVK aún hay que ponerlo a mano en el bottle |
+| 3 | D3DMetal en la interfaz | Se instala con `barrica gptk` (CLI) | Sin botón en la app para instalarlo ni para ver su versión |
 | 4 | Catálogo de instalación (como CrossTie) | Solo «Ejecutar…» con el instalador | Instalar Steam, Battle.net, etc. es manual |
 | 5 | Dependencias (vcredist, .NET, fuentes) | `barrica winetricks` en la CLI | Nada en la interfaz; los vinculados usan CrossOver |
 | 6 | Integración con macOS | Nada | Sin launchers en Launchpad/Dock, sin asociaciones de archivos, sin abrir `.exe` desde Finder ni arrastrar y soltar |
@@ -37,9 +39,9 @@ Dónde está Barrica, qué le falta y el plan para acercarse a lo que hace Cross
 ### Fase 1: motor propio (independencia de CrossOver)
 Diseño completo, con rendimiento en juegos, mediciones e hitos: [docs/MOTOR.md](docs/MOTOR.md).
 
-- **Fuente:** `crossover-sources-26.3.0.tar.gz` de codeweavers.com/crossover/source. La licencia de CrossOver, sección 2, permite compilar versiones alternativas de su Wine.
-- **Herramientas:** `mingw-w64`, `bison` 3 o superior, y `freetype` compilado para x86_64. Se compila en x86_64 bajo Rosetta con el WoW64 nuevo, que soporta juegos de 32 bits.
-- **Script:** `engine/build.sh`, escrito por nosotros, que deja el motor en `~/Library/Application Support/Barrica/Engines/<versión>/`.
+- **Fuente:** `crossover-sources-26.3.0.tar.gz` de codeweavers.com/crossover/source, ya descargado en `~/Library/Application Support/Barrica/Engines/sources/`. La licencia de CrossOver, sección 2, permite compilar versiones alternativas de su Wine.
+- **Herramientas:** `mingw-w64`, `bison` 3 o superior, y `freetype` compilado para x86_64. Se compila en x86_64 bajo Rosetta con el WoW64 nuevo, que soporta juegos de 32 bits. El motor ARM64 nativo (Wine + FEX) es el objetivo final, pero su código no es público todavía; ver la sección 0 de [docs/MOTOR.md](docs/MOTOR.md).
+- **Script:** `engine/build.sh`, escrito por nosotros, que deja el motor en `engine/dist/`; `bundle.sh` lo mete dentro de `Barrica.app`, así que instalar la app es instalar el motor. Otros motores van en `~/Library/Application Support/Barrica/Engines/<nombre>/` y se pueden elegir.
 - **Gestor de motores en la app:** instalar, elegir por bottle, ver la versión y borrar.
 - **Meta:** que el Bloc de notas, `winecfg` y Steam abran en un bottle propio.
 
