@@ -1,0 +1,1 @@
+Barrica 0.2 trae su propio Wine: lo compilamos desde el código libre de CodeWeavers, con DXMT y D3DMetal 4 directos a Metal, y ya abre Counter-Strike 2 en un Mac con Apple Silicon. Gratis y de código abierto: ibearsmile2319.github.io/barrica

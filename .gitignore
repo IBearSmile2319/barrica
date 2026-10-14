@@ -1,2 +1,8 @@
 /target
 /engine/dist
+.DS_Store
+# Vídeo de /brag: se regeneran con brag-output/work (npm i, node render.js, python3 sound.py)
+/brag-output/work/node_modules
+/brag-output/work/frames
+/brag-output/work/stills
+/brag-output/work/soundtrack.wav

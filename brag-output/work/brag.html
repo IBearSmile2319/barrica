@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Barrica 0.2: nuestro propio Wine</title>
+<!-- Vídeo de brag-plan.md. render.js pausa todas las animaciones y fija cada cuadro (30 fps).
+     Tiempos en segundos; 110 BPM, un tiempo = 0,545 s. Abierto en un navegador se reproduce en bucle. -->
+<style>
+:root { --wine: #b3264f; --wine-2: #d23a6a; --ink: #f4eef6; --muted: rgba(244, 238, 246, .7); --bg: #120e14; --ok: #5fd39a; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+body { font-family: -apple-system, "SF Pro Display", "Avenir Next", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+.stage { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+  background: radial-gradient(1600px 900px at 10% -10%, #5a1430 0%, transparent 60%), radial-gradient(1200px 800px at 105% 110%, #2b0b25 0%, transparent 60%), var(--bg); }
+.glow { position: absolute; width: 1300px; height: 1300px; border-radius: 50%; left: -300px; top: -560px;
+  background: radial-gradient(closest-side, rgba(210, 58, 106, .32), transparent 70%); animation: drift 20.73s linear both; }
+@keyframes drift { to { transform: translate(780px, 400px); } }
+
+/* Cada escena entra y sale por el fondo (sin doble exposición). */
+.scene { position: absolute; inset: 0; opacity: 0; }
+@keyframes scene { 0% { opacity: 0; } 6% { opacity: 1; } 95% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes scene-last { 0% { opacity: 0; } 6% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes rise { from { opacity: 0; transform: translateY(34px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { opacity: 0; transform: scale(.55); } 70% { opacity: 1; transform: scale(1.07); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes slide { from { opacity: 0; transform: translateX(120px); } to { opacity: 1; transform: none; } }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes beat { 0%, 100% { box-shadow: 0 30px 70px -20px rgba(179, 38, 79, .85), 0 0 0 0 rgba(210, 58, 106, .55); }
+                  50% { box-shadow: 0 30px 70px -20px rgba(179, 38, 79, .85), 0 0 0 22px rgba(210, 58, 106, 0); } }
+* { animation-fill-mode: both; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+
+.title { font-weight: 780; letter-spacing: -.035em; line-height: 1.02; }
+.kicker { color: var(--wine-2); font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-size: 26px; }
+.lead { color: var(--muted); font-size: 40px; line-height: 1.3; font-weight: 500; }
+.mono { font-family: "SF Mono", Menlo, monospace; }
+
+/* 1 · Gancho: la terminal (0 – 2,727) */
+#s1 { animation: scene 2.727s 0s both; }
+#s1 .head { position: absolute; left: 0; right: 0; top: 96px; text-align: center; font-size: 76px; animation: rise .6s .15s both; }
+#s1 .head b { color: var(--wine-2); }
+.term { position: absolute; left: 310px; top: 262px; width: 1300px; height: 600px; border-radius: 18px; overflow: hidden;
+  background: #0c0a0e; box-shadow: 0 60px 120px -30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(255, 255, 255, .09); animation: rise .55s 0s both; }
+.term .bar { display: flex; gap: 9px; padding: 15px 18px; background: #1d1820; align-items: center; }
+.term .bar i { width: 14px; height: 14px; border-radius: 50%; background: #ff5f57; }
+.term .bar i:nth-child(2) { background: #febc2e; } .term .bar i:nth-child(3) { background: #28c840; }
+.term .bar span { margin-left: 14px; color: rgba(255, 255, 255, .45); font-size: 20px; }
+.term .body { padding: 30px 42px; font-size: 33px; line-height: 1.5; }
+.term .cmd { display: inline-block; overflow: hidden; white-space: nowrap; vertical-align: bottom; width: 0; animation: type .7s steps(18, end) .25s both; }
+@keyframes type { to { width: 18ch; } }
+.term .ps { color: var(--ok); }
+.term .log div { opacity: 0; color: rgba(244, 238, 246, .62); }
+.term .log div::before { content: "==> "; color: var(--wine-2); }
+.term .log div:nth-child(1) { animation: appear .05s 1.10s both; } .term .log div:nth-child(2) { animation: appear .05s 1.24s both; }
+.term .log div:nth-child(3) { animation: appear .05s 1.38s both; } .term .log div:nth-child(4) { animation: appear .05s 1.52s both; }
+.term .log div:nth-child(5) { animation: appear .05s 1.66s both; } .term .log div:nth-child(6) { animation: appear .05s 1.80s both; }
+.term .log div:nth-child(7) { animation: appear .05s 1.94s both; }
+.term .done { margin-top: 12px; display: inline-block; padding: 6px 18px; border-radius: 10px; font-weight: 700; font-size: 36px;
+  background: linear-gradient(120deg, var(--wine), #6e1433); animation: pop .45s 2.22s both; }
+
+/* 2 · Revelación (2,727 – 5,455) */
+#s2 { animation: scene 2.728s 2.727s both; display: grid; place-items: center; text-align: center; }
+#s2 img { width: 230px; height: 230px; margin: 0 auto 34px; filter: drop-shadow(0 34px 56px rgba(0, 0, 0, .6)); animation: pop .8s 2.80s both; }
+#s2 .title { font-size: 150px; animation: rise .7s 3.05s both; }
+#s2 .title span { color: var(--wine-2); }
+#s2 .lead { margin-top: 18px; font-size: 52px; color: var(--ink); animation: rise .7s 3.35s both; }
+
+/* 3 · Capas gráficas (5,455 – 9,818) */
+#s3 { animation: scene 4.363s 5.455s both; }
+#s3 .text { position: absolute; left: 110px; top: 300px; width: 700px; }
+#s3 .kicker { animation: rise .6s 5.60s both; }
+#s3 .title { font-size: 88px; margin-top: 22px; animation: rise .6s 5.72s both; }
+#s3 .note { margin-top: 36px; font-size: 26px; color: var(--muted); animation: rise .6s 6.0s both; }
+#s3 .stack { position: absolute; right: 120px; top: 230px; width: 900px; display: flex; flex-direction: column; gap: 26px; }
+.card { display: flex; align-items: center; gap: 28px; padding: 32px 38px; border-radius: 26px; font-size: 42px; font-weight: 700;
+  background: rgba(255, 255, 255, .06); box-shadow: 0 0 0 1px rgba(255, 255, 255, .1); }
+.card .check { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-size: 32px; background: rgba(95, 211, 154, .16); color: var(--ok); }
+.card .res { margin-left: auto; font-size: 30px; font-weight: 600; color: var(--muted); }
+.card .res b { color: var(--ink); }
+.card.hot { background: linear-gradient(120deg, #b3264f, #6e1433); }
+.card.hot .res { color: rgba(255, 255, 255, .85); }
+.card.hot .check { background: rgba(255, 255, 255, .2); color: #fff; }
+#s3 .card:nth-child(1) { animation: slide .5s 6.55s both; }
+#s3 .card:nth-child(2) { animation: slide .5s 7.00s both; }
+#s3 .card:nth-child(3) { animation: slide .5s 7.45s both, beat 1.09s 8.0s 1 both; }
+
+/* 4 · CS2 con el motor propio (9,818 – 14,182) */
+#s4 { animation: scene 4.364s 9.818s both; }
+.win { position: absolute; left: 190px; top: 70px; width: 1540px; border-radius: 20px; overflow: hidden; background: #17141a;
+  box-shadow: 0 60px 120px -30px rgba(0, 0, 0, .9), 0 0 0 1px rgba(255, 255, 255, .09); animation: rise .6s 9.82s both; }
+.win img { display: block; width: 100%; transform-origin: 70% 25%; animation: zoom 4.36s 9.818s linear both; }
+@keyframes zoom { from { transform: scale(1); } to { transform: scale(1.06); } }
+#s4 .caption { position: absolute; left: 110px; bottom: 80px; padding: 24px 38px; border-radius: 24px; font-size: 52px; font-weight: 750; letter-spacing: -.01em;
+  background: rgba(18, 14, 20, .86); backdrop-filter: blur(12px); box-shadow: 0 26px 60px -12px rgba(0, 0, 0, .75), 0 0 0 1px rgba(255, 255, 255, .1);
+  animation: rise .6s 10.3s both; }
+#s4 .caption b { color: var(--wine-2); }
+
+/* 5 · Parches propios (14,182 – 17,455) */
+#s5 { animation: scene 3.273s 14.182s both; display: grid; place-items: center; }
+#s5 .box { width: 1300px; }
+#s5 .kicker { animation: rise .6s 14.25s both; }
+#s5 .title { font-size: 96px; margin: 20px 0 50px; animation: rise .6s 14.32s both; }
+.fix { display: flex; align-items: center; gap: 28px; font-size: 56px; font-weight: 700; margin-bottom: 28px; }
+.fix .check { width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; font-size: 38px; background: rgba(95, 211, 154, .16); color: var(--ok); }
+.fix small { display: block; font-size: 28px; font-weight: 500; color: var(--muted); margin-top: 6px; }
+#s5 .fix:nth-of-type(1) { animation: slide .5s 14.63s both; }
+#s5 .fix:nth-of-type(2) { animation: slide .5s 15.03s both; }
+
+/* 6 · Cierre (17,455 – 20,727) */
+#s6 { animation: scene-last 3.272s 17.455s both; display: grid; place-items: center; text-align: center; }
+#s6 img { width: 170px; height: 170px; margin: 0 auto 30px; animation: pop .7s 17.55s both; }
+#s6 .title { font-size: 112px; animation: rise .7s 17.75s both; }
+#s6 .title span { color: var(--wine-2); }
+#s6 .url { display: inline-block; margin-top: 46px; padding: 22px 46px; border-radius: 999px; font-size: 40px; font-weight: 700; background: var(--wine);
+  box-shadow: 0 26px 60px -14px rgba(179, 38, 79, .9); animation: pop .6s 18.25s both; }
+#s6 .fine { margin-top: 30px; color: var(--muted); font-size: 30px; animation: rise .6s 18.55s both; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="glow"></div>
+
+  <section class="scene" id="s1">
+    <h1 class="head title">Compilamos <b>nuestro propio Wine</b>.</h1>
+    <div class="term mono">
+      <div class="bar"><i></i><i></i><i></i><span>barrica — zsh</span></div>
+      <div class="body">
+        <div><span class="ps">$</span> <span class="cmd">./engine/build.sh</span></div>
+        <div class="log">
+          <div>gmp</div><div>nettle 3.10</div><div>gnutls</div><div>MoltenVK v1.4.2</div>
+          <div>Wine (CrossOver 26.3.0)</div><div>Capas gráficas: WineD3D y DXMT v0.80</div><div>Wine Mono 10.4.1 y Gecko 2.47.4</div>
+        </div>
+        <div class="done">==&gt; Motor listo · 1.0 GB</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scene" id="s2">
+    <div>
+      <img src="icon.png" alt="">
+      <h1 class="title">Barrica <span>0.2</span></h1>
+      <p class="lead">Ahora con su propio Wine.</p>
+    </div>
+  </section>
+
+  <section class="scene" id="s3">
+    <div class="text">
+      <div class="kicker">Una capa gráfica por bottle</div>
+      <h2 class="title">DirectX, directo a Metal</h2>
+      <p class="note">Resultados de <span class="mono">engine/check.sh</span> en un M5 Pro</p>
+    </div>
+    <div class="stack">
+      <div class="card"><span class="check">✓</span>WineD3D<span class="res">D3D11 · nivel <b>9_3</b></span></div>
+      <div class="card"><span class="check">✓</span>DXMT 0.80<span class="res">D3D11 · nivel <b>11_0</b></span></div>
+      <div class="card hot"><span class="check">✓</span>D3DMetal 4 beta<span class="res">D3D12 · nivel <b>12_2</b></span></div>
+    </div>
+  </section>
+
+  <section class="scene" id="s4">
+    <div class="win"><img src="barrica-cs2.png" alt=""></div>
+    <div class="caption">Counter-Strike 2, <b>con nuestro motor</b></div>
+  </section>
+
+  <section class="scene" id="s5">
+    <div class="box">
+      <div class="kicker">Lo arreglamos en el Wine</div>
+      <h2 class="title">Dos parches propios</h2>
+      <div class="fix"><span class="check">✓</span><div>El micro ya no congela el juego</div></div>
+      <div class="fix"><span class="check">✓</span><div>Steam ya no se ve en negro</div></div>
+    </div>
+  </section>
+
+  <section class="scene" id="s6">
+    <div>
+      <img src="icon.png" alt="">
+      <h1 class="title">Tu Wine. Tu Mac. <span>Tus juegos.</span></h1>
+      <div class="url">ibearsmile2319.github.io/barrica</div>
+      <p class="fine">Gratis y de código abierto · GPL-3.0 · Apple Silicon</p>
+    </div>
+  </section>
+</div>
+<script>
+  // Abierto en un navegador se repite; render.js añade ?render y controla el tiempo.
+  if (!location.search.includes("render"))
+    setInterval(() => document.getAnimations().forEach(a => { a.currentTime = 0; a.play(); }), 20727);
+</script>
+</body>
+</html>
