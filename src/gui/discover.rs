@@ -12,7 +12,7 @@ pub(super) fn hex(s: &str) -> Color32 {
     v.map_or(WINE, |v| Color32::from_rgb((v >> 16) as u8, (v >> 8) as u8, v as u8))
 }
 
-fn mix(a: Color32, b: Color32, t: f32) -> Color32 {
+pub(super) fn mix(a: Color32, b: Color32, t: f32) -> Color32 {
     let l = |x: u8, y: u8| (x as f32 + (y as f32 - x as f32) * t).round() as u8;
     Color32::from_rgba_unmultiplied(l(a.r(), b.r()), l(a.g(), b.g()), l(a.b(), b.b()), l(a.a(), b.a()))
 }
@@ -31,7 +31,7 @@ fn on(c: Color32) -> Color32 {
 }
 
 /// Rectángulo redondeado con degradado: un abanico desde el centro reproduce exacto cualquier degradado lineal.
-fn gradient(painter: &egui::Painter, rect: Rect, radius: f32, color_at: impl Fn(Pos2) -> Color32) {
+pub(super) fn gradient(painter: &egui::Painter, rect: Rect, radius: f32, color_at: impl Fn(Pos2) -> Color32) {
     let r = radius.min(rect.width() / 2.0).min(rect.height() / 2.0);
     let mut ring = Vec::new();
     for (corner, start) in [
@@ -58,14 +58,14 @@ fn gradient(painter: &egui::Painter, rect: Rect, radius: f32, color_at: impl Fn(
 }
 
 /// Degradado de arriba-izquierda (`a`) a abajo-derecha (`b`).
-fn diagonal(rect: Rect, a: Color32, b: Color32) -> impl Fn(Pos2) -> Color32 {
+pub(super) fn diagonal(rect: Rect, a: Color32, b: Color32) -> impl Fn(Pos2) -> Color32 {
     move |p: Pos2| {
         let t = ((p.x - rect.left()) / rect.width() * 0.65 + (p.y - rect.top()) / rect.height() * 0.35).clamp(0.0, 1.0);
         mix(a, b, t)
     }
 }
 
-fn shadow(painter: &egui::Painter, rect: Rect, radius: u8, strength: u8) {
+pub(super) fn shadow(painter: &egui::Painter, rect: Rect, radius: u8, strength: u8) {
     let s = egui::epaint::Shadow { offset: [0, 6], blur: 22, spread: 0, color: Color32::from_black_alpha(strength) };
     painter.add(s.as_shape(rect, radius));
 }
@@ -627,8 +627,7 @@ impl App {
                         });
                 }
                 ui.add_space(14.0);
-                let well = ui.visuals().faint_bg_color; // la ventana ya es del color de las tarjetas
-                egui::Frame::new().fill(well).corner_radius(14).inner_margin(Margin::symmetric(16, 12)).show(ui, |ui| {
+                egui::Frame::new().fill(p.well).corner_radius(14).inner_margin(Margin::symmetric(16, 12)).show(ui, |ui| {
                     ui.set_width(ui.available_width());
                     egui::Grid::new("detail-grid").num_columns(2).spacing([22.0, 9.0]).show(ui, |ui| {
                         let row = |ui: &mut egui::Ui, k: &str, v: String| {
@@ -714,7 +713,7 @@ impl App {
                         let field = egui::TextEdit::singleline(&mut self.target_name)
                             .desired_width(300.0)
                             .hint_text("Nombre del bottle")
-                            .background_color(ui.visuals().faint_bg_color)
+                            .background_color(pal(ui).well)
                             .margin(vec2(10.0, 6.0));
                         ui.add(field);
                         let name = self.target_name.trim();

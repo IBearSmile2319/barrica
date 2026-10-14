@@ -28,7 +28,7 @@ Dónde está Barrica, qué le falta y el plan para acercarse a lo que hace Cross
 | 7 | Canales de log (`WINEDEBUG`) en la interfaz | Solo `BARRICA_DEBUG` en la CLI | Diagnosticar exige terminal |
 | 8 | «Ejecutar con opciones» (argumentos, carpeta, variables) | Solo en la CLI | |
 | 9 | Micrófono robótico en CS2 | Sin resolver | Ver «Investigaciones abiertas» |
-| 10 | Firma, notarización y actualizaciones | Nada | Gatekeeper avisa al compartir la app; sin actualizaciones automáticas |
+| 10 | Firma y notarización | `.dmg` firmado ad hoc, compilado en GitHub Actions; «Acerca de» avisa de versiones nuevas | Gatekeeper pide `xattr` la primera vez; falta Developer ID y notarizar (el motor necesita entitlements de runtime endurecido) |
 | 11 | Tests de interfaz | Solo los del núcleo | |
 | 12 | Snapshots con el bottle abierto | Solo un aviso de texto | Puede quedar un snapshot inconsistente; habría que bloquearlo |
 | 13 | Tamaño de clones | `du` cuenta los bloques compartidos | Un clon APFS aparenta ocupar lo mismo que el original |

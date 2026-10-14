@@ -934,7 +934,7 @@ fn lock_held(file: &Path) -> bool {
     let mut fl: libc::flock = unsafe { std::mem::zeroed() };
     fl.l_type = libc::F_WRLCK as _;
     fl.l_whence = libc::SEEK_SET as _;
-    (unsafe { libc::fcntl(f.as_raw_fd(), libc::F_GETLK, &mut fl) }) == 0 && i32::from(fl.l_type) != libc::F_UNLCK as i32
+    (unsafe { libc::fcntl(f.as_raw_fd(), libc::F_GETLK, &mut fl) }) == 0 && fl.l_type as i64 != libc::F_UNLCK as i64 // i16 en macOS, i32 en Linux
 }
 
 fn collect_lnk(dir: &Path, out: &mut Vec<Program>, icons: &BTreeMap<String, PathBuf>, depth: u8) {

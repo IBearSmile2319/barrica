@@ -1,3 +1,4 @@
+mod about;
 mod catalog;
 mod core;
 mod gui;
@@ -6,7 +7,7 @@ use crate::catalog::Target;
 use crate::core::{self as cx, Arch};
 use std::path::Path;
 
-const HELP: &str = "Barrica: bottles de Wine para macOS.
+const HELP: &str = "Barrica: bottles de Wine para macOS. Licencia GPL-3.0-or-later.
 
   barrica                                 abre la app
   barrica list                            bottles y su tamaño
@@ -33,6 +34,7 @@ const HELP: &str = "Barrica: bottles de Wine para macOS.
   barrica winetricks <bottle> <verbos...> p. ej. vcrun2022 dotnet48
   barrica engines                         motores Wine detectados
   barrica engine <ruta a wine>            elegir motor
+  barrica version                         versión, motor y sistema (para reportar errores)
   barrica gptk <carpeta>                  instala D3DMetal del Game Porting Toolkit de Apple
                                           (el volumen «Evaluation environment for Windows games»)";
 
@@ -134,6 +136,7 @@ fn cli(args: &[String]) -> cx::Result<()> {
         "engines" => cx::engines().iter().for_each(|e| println!("{}\t{}", e.label, e.wine.display())),
         "engine" => cx::Settings { engine: Some(a(1)?.into()), ..cx::Settings::load() }.save()?,
         "gptk" => println!("D3DMetal instalado en {}", cx::install_gptk(Path::new(&a(1)?))?.display()),
+        "version" | "-V" | "--version" => print!("{}", about::report(&about::gather())),
         "help" | "-h" | "--help" => println!("{HELP}"),
         other => return Err(format!("Comando desconocido «{other}».\n\n{HELP}")),
     }

@@ -191,12 +191,58 @@ addons() {
     for a in x86 x86_64; do tar -xJf "wine-gecko-$GECKO-$a.tar.xz" -C "$DIST/share/wine/gecko"; done
 }
 
+# Qué lleva el motor, para «Acerca de» (src/about.rs).
+manifest() {
+    mkdir -p "$DIST/share/barrica"
+    {
+        echo "crossover = \"$VERSION\""
+        echo "dxmt = \"$DXMT\""
+        echo "moltenvk = \"$MOLTENVK\""
+        echo "mono = \"$MONO\""
+        echo "gecko = \"$GECKO\""
+        printf 'patches = ['
+        sep=
+        for p in "$HERE"/patches/*.patch; do
+            [ -f "$p" ] || continue
+            printf '%s"%s"' "$sep" "$(basename "$p" .patch)"
+            sep=', '
+        done
+        echo ']'
+        echo "built = \"$(date -u +%Y-%m-%d)\""
+    } > "$DIST/share/barrica/engine.toml"
+}
+
+# Textos de licencia de lo que va dentro del motor (LGPL, MPL, Apache…): deben viajar con cada copia.
+licenses() {
+    step "Licencias"
+    L=$DIST/share/licenses
+    rm -rf "$L"
+    for pair in wine:"$SRC/wine" freetype:"$SRC/freetype" gnutls:"$SRC/gnutls/gnutls" gmp:"$SRC/gnutls/gmp" \
+        nettle:"$WORK/addons/nettle-$NETTLE"; do
+        name=${pair%%:*}
+        dir=${pair#*:}
+        [ -d "$dir" ] || continue
+        mkdir -p "$L/$name"
+        find "$dir" -maxdepth 2 -type f \( -iname 'COPYING*' -o -iname 'LICENSE*' -o -iname 'LICENCE*' \
+            -o -name 'FTL.TXT' -o -name 'GPLv2.TXT' -o -name 'AUTHORS' \) -exec cp {} "$L/$name/" \;
+    done
+    f=$WORK/addons/MoltenVK-macos-$MOLTENVK.tar
+    if [ -f "$f" ]; then
+        mkdir -p "$L/moltenvk"
+        lic=$(tar -tf "$f" | grep -i -m1 'LICENSE' || true)
+        [ -n "$lic" ] && tar -xOf "$f" "$lic" > "$L/moltenvk/LICENSE"
+    fi
+    cp "$HERE/../THIRD_PARTY_NOTICES.md" "$L/"
+}
+
 case "${1:-all}" in
     wine)
         patches
         wine
         layers
         addons
+        licenses
+        manifest
         ;;
     all)
         fetch
@@ -205,6 +251,8 @@ case "${1:-all}" in
         wine
         layers
         addons
+        licenses
+        manifest
         ;;
     *)
         echo "uso: $0 [all|wine]" >&2

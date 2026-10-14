@@ -1,7 +1,9 @@
 //! Ventana principal: bottles a la izquierda; a la derecha el bottle con su biblioteca o «Descubrir».
 
 mod discover;
+mod info;
 
+use crate::about;
 use crate::catalog::{self, Catalog, Step};
 use crate::core::{self as cx, Arch, Bottle, BottleConfig, Graphics, Program};
 use eframe::egui::{
@@ -52,6 +54,8 @@ struct Pal {
     card_hover: Color32,
     text: Color32,
     muted: Color32,
+    /// Fondo hundido dentro de ventanas y fichas (en oscuro, la ventana ya es del color de las tarjetas).
+    well: Color32,
 }
 
 fn pal(ui: &egui::Ui) -> Pal {
@@ -61,6 +65,7 @@ fn pal(ui: &egui::Ui) -> Pal {
             card_hover: Color32::from_rgb(0x2E, 0x28, 0x33),
             text: Color32::from_rgb(0xEE, 0xE8, 0xF0),
             muted: Color32::from_rgb(0x9E, 0x95, 0xA3),
+            well: Color32::from_rgb(0x2A, 0x25, 0x2E),
         }
     } else {
         Pal {
@@ -68,6 +73,7 @@ fn pal(ui: &egui::Ui) -> Pal {
             card_hover: Color32::from_rgb(0xF1, 0xEB, 0xEE),
             text: Color32::from_rgb(0x1E, 0x1A, 0x20),
             muted: Color32::from_rgb(0x6F, 0x66, 0x72),
+            well: Color32::from_rgb(0xF3, 0xEE, 0xF0),
         }
     }
 }
@@ -242,6 +248,8 @@ enum Msg {
     Icon(String, PathBuf),
     Step(String, Step),
     InstallDone(String, cx::Result<catalog::Outcome>),
+    AboutInfo(about::Info),
+    Release(cx::Result<about::Release>),
 }
 
 enum Action {
@@ -276,6 +284,8 @@ enum Action {
     Install(String),
     OpenApp(String),
     GoBottle(String),
+    About,
+    CheckUpdates,
 }
 
 struct App {
@@ -322,6 +332,10 @@ struct App {
     target_name: String,
     installs: BTreeMap<String, (String, Step)>,
     toast: Option<Toast>,
+    // Acerca de
+    about: bool,
+    about_info: Option<about::Info>,
+    release: Option<cx::Result<about::Release>>,
 }
 
 /// Aviso flotante al terminar una instalación.
@@ -377,11 +391,15 @@ impl App {
             target_name: String::new(),
             installs: BTreeMap::new(),
             toast: None,
+            about: false,
+            about_info: None,
+            release: None,
         };
         app.selected = app.settings.default_bottle.clone();
         app.refresh();
         app.discover = app.bottles.is_empty(); // la primera vez, directo al catálogo
         app.load_icons();
+        app.check_updates();
         // Catálogo nuevo y logos que falten, sin bloquear la ventana.
         let (tx, ctx, current) = (app.tx.clone(), app.ctx.clone(), app.catalog.clone());
         std::thread::spawn(move || {
@@ -535,6 +553,8 @@ impl App {
                     }
                 }
                 Msg::InstallDone(id, result) => self.install_done(id, result),
+                Msg::AboutInfo(info) => self.about_info = Some(info),
+                Msg::Release(r) => self.release = Some(r),
             }
         }
         // ¿Qué bottles tienen un wineserver vivo? Barato: un `stat` por bottle cada 2 s.
@@ -738,6 +758,8 @@ impl App {
             Action::ShowApp(id) => self.show_app(id),
             Action::Install(id) => self.install(id),
             Action::OpenApp(id) => self.open_app(&id),
+            Action::About => self.open_about(),
+            Action::CheckUpdates => self.check_updates(),
             Action::GoBottle(name) => {
                 self.discover = false;
                 self.creating = false;
@@ -753,10 +775,24 @@ impl App {
     fn top_bar(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
         ui.add_space(6.0);
         ui.horizontal(|ui| {
-            let (rect, _) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::hover());
+            let (rect, logo) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::click());
             barrel(ui.painter(), rect);
-            ui.label(RichText::new("Barrica").family(demi()).size(19.0));
+            let name = ui.add(egui::Label::new(RichText::new("Barrica").family(demi()).size(19.0)).sense(Sense::click()));
+            if (logo | name).on_hover_cursor(egui::CursorIcon::PointingHand).on_hover_text("Acerca de Barrica").clicked() {
+                actions.push(Action::About);
+            }
+            if let Some(Ok(r)) = &self.release
+                && r.newer
+            {
+                let pill = RichText::new(format!("Nueva versión {}", r.version)).color(Color32::WHITE).small().family(demi());
+                if ui.add(egui::Button::new(pill).fill(WINE).corner_radius(12)).clicked() {
+                    actions.push(Action::About);
+                }
+            }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Acerca de").clicked() {
+                    actions.push(Action::About);
+                }
                 ui.menu_button("Motor", |ui| {
                     ui.label(RichText::new("Motor propio para bottles nuevos").small().weak());
                     if self.engines.is_empty() {
@@ -1375,6 +1411,7 @@ impl eframe::App for App {
         });
         self.app_detail(ui.ctx(), &mut actions);
         self.toast_view(ui.ctx(), &mut actions);
+        self.about_view(ui.ctx(), &mut actions);
         for a in actions {
             self.handle(a);
         }

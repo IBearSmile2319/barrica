@@ -1,7 +1,11 @@
 [package]
 name = "barrica"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+description = "Juegos y apps de Windows en macOS: bottles de Wine con motor propio, catálogo y snapshots"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/ibearsmile2319/barrica"
+homepage = "https://ibearsmile2319.github.io/barrica/"
 
 [dependencies]
 eframe = "0.36.2"

@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barrica: juegos y apps de Windows en tu Mac</title>
+<meta name="description" content="Barrica es una app libre para macOS que instala y ejecuta juegos y programas de Windows, con su propio motor basado en Wine, un catálogo de apps que se actualiza solo y snapshots instantáneos.">
+<meta property="og:title" content="Barrica: juegos y apps de Windows en tu Mac">
+<meta property="og:description" content="Libre y gratis. Motor propio basado en Wine, catálogo con Steam, Battle.net, Epic y más, y snapshots instantáneos.">
+<meta property="og:image" content="img/descubrir.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="img/favicon.png">
+<style>
+:root {
+  --wine: #b3264f;
+  --wine-2: #d23a6a;
+  --bg: #f6f2f0;
+  --surface: #ffffff;
+  --well: #efe8ea;
+  --text: #1e1a20;
+  --muted: #6f6672;
+  --line: rgba(0,0,0,.08);
+  --shadow: 0 24px 60px -20px rgba(60, 10, 30, .35);
+  --code: #241c26;
+  --code-text: #f4eef6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141116;
+    --surface: #1f1b22;
+    --well: #2a252e;
+    --text: #eee8f0;
+    --muted: #a49aa8;
+    --line: rgba(255,255,255,.08);
+    --shadow: 0 24px 70px -20px rgba(0, 0, 0, .7);
+    --code: #0d0b0f;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Avenir Next", "Segoe UI", Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--wine-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; height: auto; display: block; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+/* Barra superior */
+.nav { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px); background: color-mix(in srgb, var(--bg) 78%, transparent); border-bottom: 1px solid var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: 24px; height: 60px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 18px; color: var(--text); }
+.brand img { width: 30px; height: 30px; }
+.nav nav { display: flex; gap: 22px; margin-left: auto; font-size: 15px; }
+.nav nav a { color: var(--muted); }
+.nav nav a:hover { color: var(--text); text-decoration: none; }
+@media (max-width: 720px) { .nav nav a:not(.btn) { display: none; } }
+
+/* Botones */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 999px; font-weight: 600; font-size: 16px; border: 0; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease, background .15s; }
+.btn:hover { text-decoration: none; transform: translateY(-1px); }
+.btn-primary { background: var(--wine); color: #fff; box-shadow: 0 10px 30px -10px rgba(179, 38, 79, .7); }
+.btn-primary:hover { background: #c22e5a; }
+.btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
+.btn-small { padding: 7px 16px; font-size: 14px; }
+.btn svg { width: 18px; height: 18px; }
+
+/* Portada */
+.hero { position: relative; overflow: hidden; padding: 84px 0 40px; text-align: center; }
+.hero::before { content: ""; position: absolute; inset: -40% -10% auto; height: 760px; background: radial-gradient(closest-side, rgba(210, 58, 106, .28), transparent 70%), radial-gradient(closest-side at 70% 40%, rgba(120, 30, 90, .25), transparent 70%); pointer-events: none; }
+.hero > .wrap { position: relative; }
+.pill { display: inline-flex; gap: 8px; align-items: center; padding: 6px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+.pill b { color: var(--wine-2); font-weight: 650; }
+.hero h1 { font-size: clamp(38px, 6.4vw, 68px); line-height: 1.04; letter-spacing: -.025em; margin: 22px auto 18px; max-width: 880px; font-weight: 750; }
+.hero h1 span { background: linear-gradient(120deg, #d23a6a, #8e1b3f 60%, #5b1240); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero p.lead { font-size: clamp(17px, 2.2vw, 21px); color: var(--muted); max-width: 680px; margin: 0 auto 30px; }
+.cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.fine { margin-top: 16px; font-size: 14px; color: var(--muted); }
+.shot { margin: 56px auto 0; max-width: 1040px; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); background: #17141a; }
+.shot .bar { display: flex; gap: 7px; padding: 11px 14px; background: #221d25; }
+.shot .bar i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+.shot .bar i:nth-child(2) { background: #febc2e; }
+.shot .bar i:nth-child(3) { background: #28c840; }
+
+/* Secciones */
+section { padding: 84px 0; }
+.eyebrow { color: var(--wine-2); font-weight: 650; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+h2 { font-size: clamp(30px, 4vw, 44px); line-height: 1.1; letter-spacing: -.02em; margin: 10px 0 14px; font-weight: 720; }
+.sub { color: var(--muted); font-size: 18px; max-width: 680px; margin: 0 0 40px; }
+.center { text-align: center; }
+.center .sub { margin-left: auto; margin-right: auto; }
+
+.grid { display: grid; gap: 18px; grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+.card h3 { margin: 14px 0 6px; font-size: 18px; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+.ico { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #d23a6a, #6e1433); }
+.ico svg { width: 22px; height: 22px; }
+
+/* Galería */
+.gallery { display: grid; gap: 22px; grid-template-columns: repeat(2, 1fr); }
+.gallery figure { margin: 0; }
+.gallery img { border-radius: 12px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.gallery figcaption { color: var(--muted); font-size: 14px; margin-top: 10px; }
+@media (max-width: 760px) { .gallery { grid-template-columns: 1fr; } }
+
+/* Motor */
+.split { display: grid; gap: 40px; grid-template-columns: 1.05fr 1fr; align-items: center; }
+@media (max-width: 880px) { .split { grid-template-columns: 1fr; } }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+.layer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-weight: 600; }
+.layer small { color: var(--muted); font-weight: 400; text-align: right; }
+.layer.hot { background: linear-gradient(120deg, #b3264f, #6e1433); color: #fff; border: 0; }
+.layer.hot small { color: rgba(255,255,255,.8); }
+.arrow { text-align: center; color: var(--muted); font-size: 13px; line-height: 1; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--surface); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 650; background: var(--well); }
+tr:last-child td { border-bottom: 0; }
+
+/* Pasos */
+.steps { counter-reset: s; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.step { position: relative; padding-top: 52px; }
+.step::before { counter-increment: s; content: counter(s); position: absolute; top: 20px; left: 24px; width: 26px; height: 26px; border-radius: 50%; background: var(--wine); color: #fff; font-weight: 700; font-size: 14px; display: grid; place-items: center; }
+pre { position: relative; margin: 14px 0 0; padding: 14px 16px 44px; white-space: pre-wrap; word-break: break-all; border-radius: 12px; background: var(--code); color: var(--code-text); overflow-x: auto; font: 14px/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+pre button { position: absolute; bottom: 8px; right: 8px; font: 12px/1 inherit; padding: 6px 10px; border-radius: 8px; border: 0; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
+code { font: 0.92em ui-monospace, "SF Mono", Menlo, monospace; background: var(--well); padding: 2px 6px; border-radius: 6px; }
+pre code { background: none; padding: 0; }
+
+/* Preguntas */
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px 20px; margin-bottom: 10px; }
+summary { cursor: pointer; padding: 14px 0; font-weight: 620; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--wine-2); font-size: 22px; line-height: 1; }
+details[open] summary::after { content: "–"; }
+details p, details ul { color: var(--muted); margin: 0 0 16px; }
+
+/* Llamada final y pie */
+.final { text-align: center; background: linear-gradient(135deg, #9a1f48, #240a1e); color: #fff; border-radius: 28px; padding: 64px 24px; }
+.final h2 { color: #fff; }
+.final p { color: rgba(255,255,255,.8); max-width: 600px; margin: 0 auto 28px; font-size: 18px; }
+.final .btn-primary { background: #fff; color: #8e1b3f; box-shadow: none; }
+footer { padding: 40px 0 56px; color: var(--muted); font-size: 14px; }
+footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; }
+footer p { margin: 0; max-width: 640px; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="img/icon.png" alt="">Barrica</a>
+    <nav>
+      <a href="#funciones">Funciones</a>
+      <a href="#motor">Motor</a>
+      <a href="#instalar">Instalar</a>
+      <a href="#preguntas">Preguntas</a>
+      <a href="https://github.com/ibearsmile2319/barrica">GitHub</a>
+      <a class="btn btn-primary btn-small" href="https://github.com/ibearsmile2319/barrica/releases/latest/download/Barrica.dmg">Descargar</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="wrap">
+      <span class="pill"><b>Nuevo</b> Descubrir: instala Steam, Battle.net o Epic con un clic</span>
+      <h1>Juegos y apps de Windows en tu Mac, <span>sin complicaciones</span>.</h1>
+      <p class="lead">Barrica instala y abre programas de Windows en macOS con su propio motor basado en Wine. Libre, gratis y hecha para jugar.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/ibearsmile2319/barrica/releases/latest/download/Barrica.dmg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Descargar para Mac
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/ibearsmile2319/barrica">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+          Código fuente
+        </a>
+      </div>
+      <p class="fine">macOS 11 o superior · Apple Silicon (e Intel, con límites) · Software libre, licencia GPL-3.0</p>
+      <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="img/descubrir.png" alt="La pantalla Descubrir de Barrica, con Steam, Battle.net, Epic Games y GOG Galaxy destacadas" width="1180" height="780"></div>
+    </div>
+  </div>
+
+  <section id="funciones">
+    <div class="wrap">
+      <div class="center">
+        <div class="eyebrow">Funciones</div>
+        <h2>Todo lo que necesitas para jugar</h2>
+        <p class="sub">Un «bottle» es un Windows aparte, solo para una app. Barrica los crea, los prepara y los cuida por ti.</p>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 14.2 9.8 22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg></div>
+          <h3>Descubrir</h3>
+          <p>Steam, Battle.net, Epic, GOG, EA app, 7-Zip, Notepad++ y más, con un clic. El catálogo y las versiones se actualizan solos.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg></div>
+          <h3>Motor propio</h3>
+          <p>Wine 11 compilado desde el código libre de CrossOver 26.3, con MSync, DXMT y MoltenVK. Viene dentro de la app.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h18"/></svg></div>
+          <h3>DirectX sobre Metal</h3>
+          <p>Elige capa por bottle: DXMT para DirectX 11, D3DMetal de Apple para DirectX 12, o WineD3D. «Automático» decide por ti.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <h3>Snapshots instantáneos</h3>
+          <p>Guarda un bottle antes de instalar mods y vuelve atrás en un segundo. Son clones APFS: no ocupan espacio hasta que algo cambia.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15l3-3-3-3M12 15h5"/></svg></div>
+          <h3>Un registro por ejecución</h3>
+          <p>Cada vez que algo se abre, su salida queda guardada. Cuando un juego no arranca, ya sabes dónde mirar.</p>
+        </div>
+        <div class="card">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></div>
+          <h3>¿Ya usas CrossOver?</h3>
+          <p>Vincula tus bottles de CrossOver y ábrelos desde Barrica con su propio motor, o cópialos para usarlos con el de Barrica.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top: 0">
+    <div class="wrap">
+      <div class="gallery">
+        <figure><img src="img/catalogo.png" alt="Tarjetas del catálogo con Steam, Battle.net, Epic Games, GOG Galaxy, EA app y Ubisoft Connect" loading="lazy" width="1180" height="780"><figcaption>Cada app con su logo, su origen y su estado: instalar, instalando o abrir.</figcaption></figure>
+        <figure><img src="img/ficha.png" alt="Ficha de Steam con su descripción, origen, versión de Windows y el botón Abrir" loading="lazy" width="1180" height="780"><figcaption>La ficha de cada app dice qué es, de dónde se descarga y cómo se prepara.</figcaption></figure>
+        <figure><img src="img/instalando.png" alt="Ubisoft Connect descargándose, con su barra de progreso" loading="lazy" width="1180" height="780"><figcaption>El progreso, en la tarjeta y abajo. Puedes seguir usando la app.</figcaption></figure>
+        <figure><img src="img/bottle.png" alt="El bottle de Battle.net con su color de marca y su biblioteca" loading="lazy" width="1180" height="780"><figcaption>Cada bottle con su marca, su biblioteca y sus herramientas de Windows.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="motor" style="background: var(--well)">
+    <div class="wrap split">
+      <div>
+        <div class="eyebrow">El motor</div>
+        <h2>Nuestro propio Wine, afinado para jugar</h2>
+        <p class="sub" style="margin-bottom: 24px">El motor de Barrica es el mismo Wine que usa CrossOver 26.3, compilado por nosotros desde el código que CodeWeavers publica, con parches propios y las capas gráficas elegidas para juegos. Todo el proceso es abierto: cualquiera puede recompilarlo con un script.</p>
+        <table>
+          <tr><th>DirectX</th><th>Capa</th><th>Cómo</th></tr>
+          <tr><td>9</td><td>WineD3D</td><td>Incluida</td></tr>
+          <tr><td>10 y 11</td><td>DXMT</td><td>Incluida, directo a Metal</td></tr>
+          <tr><td>11 y 12</td><td>D3DMetal</td><td>Del Game Porting Toolkit de Apple, con <code>barrica gptk</code></td></tr>
+        </table>
+      </div>
+      <div class="stack" aria-label="Capas por las que pasa un juego">
+        <div class="layer">Tu juego de Windows <small>x86_64</small></div>
+        <div class="arrow">▼</div>
+        <div class="layer">Rosetta 2 <small>traduce la CPU</small></div>
+        <div class="arrow">▼</div>
+        <div class="layer hot">Motor Barrica · Wine 11 <small>MSync · parches propios</small></div>
+        <div class="arrow">▼</div>
+        <div class="layer">DXMT · D3DMetal · MoltenVK <small>DirectX y Vulkan a Metal</small></div>
+        <div class="arrow">▼</div>
+        <div class="layer">Metal y la GPU de tu Mac <small>Apple Silicon</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="instalar">
+    <div class="wrap">
+      <div class="center">
+        <div class="eyebrow">Instalar</div>
+        <h2>Listo en tres pasos</h2>
+        <p class="sub">El motor viene dentro de la app: no hay nada más que instalar.</p>
+      </div>
+      <div class="steps">
+        <div class="card step">
+          <h3>Descarga</h3>
+          <p>Baja <a href="https://github.com/ibearsmile2319/barrica/releases/latest/download/Barrica.dmg">Barrica.dmg</a>, ábrelo y arrastra Barrica a Aplicaciones.</p>
+        </div>
+        <div class="card step">
+          <h3>Permite que abra</h3>
+          <p>Barrica aún no está notarizada por Apple, así que la primera vez macOS la bloquea. Ejecuta esto en Terminal:</p>
+          <pre><code>xattr -dr com.apple.quarantine /Applications/Barrica.app</code><button type="button" data-copy>Copiar</button></pre>
+        </div>
+        <div class="card step">
+          <h3>Instala tu primer juego</h3>
+          <p>Abre <b>Descubrir</b>, elige Steam o cualquier otra app y pulsa <b>Instalar</b>. Barrica crea su bottle y lo prepara.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="preguntas" style="padding-top: 20px">
+    <div class="wrap" style="max-width: 820px">
+      <div class="center">
+        <div class="eyebrow">Preguntas</div>
+        <h2>Lo que más nos preguntan</h2>
+      </div>
+      <details>
+        <summary>¿Es gratis?</summary>
+        <p>Sí. Barrica es software libre bajo la licencia GPL-3.0: puedes usarla, estudiarla, cambiarla y compartirla. Quien comparta una versión modificada debe publicar también su código.</p>
+      </details>
+      <details>
+        <summary>¿Funciona en Linux?</summary>
+        <p>No: Barrica está hecha para macOS. Su motor usa piezas que solo existen en el Mac (Metal, Rosetta, el controlador de ventanas de macOS) y la app usa funciones de macOS como los clones APFS. En Linux ya hay buenas opciones, como Steam con Proton, Lutris, Heroic o Bottles.</p>
+      </details>
+      <details>
+        <summary>¿Y en un Mac con Intel?</summary>
+        <p>Debería abrir: la app se publica también para Intel y el motor es x86_64, que es lo nativo en esos Mac. Pero no lo hemos probado, y DXMT y D3DMetal, las capas que llevan DirectX 11 y 12 a Metal, están pensadas para Apple Silicon. En Intel, cuenta con juegos sencillos y no con los modernos.</p>
+      </details>
+      <details>
+        <summary>¿Es CrossOver?</summary>
+        <p>No. Barrica es un proyecto independiente que no está afiliado a CodeWeavers. Su motor se compila desde el código fuente libre que CodeWeavers publica de CrossOver (Wine, bajo la LGPL), cosa que la licencia de CrossOver permite. No incluye ni usa ninguna parte cerrada de CrossOver. Si tienes CrossOver, Barrica puede abrir tus bottles con él.</p>
+      </details>
+      <details>
+        <summary>¿Qué juegos funcionan?</summary>
+        <p>Muchos juegos de DirectX 9, 10, 11 y 12. Counter-Strike 2 funciona con el motor de Barrica y DXMT. Los juegos con antitrampas a nivel de kernel (Valorant, por ejemplo) no funcionan en Wine. Si pruebas uno, cuéntanos en GitHub cómo te fue.</p>
+      </details>
+      <details>
+        <summary>¿Qué es D3DMetal y por qué no viene incluido?</summary>
+        <p>Es la capa de Apple que traduce DirectX 11 y 12 a Metal, parte del Game Porting Toolkit. Su licencia no permite redistribuirla dentro de otra app, así que cada usuario la baja de developer.apple.com y la instala con <code>barrica gptk</code>.</p>
+      </details>
+      <details>
+        <summary>¿Cómo añado una app al catálogo?</summary>
+        <p>El catálogo es un archivo de texto en el repositorio (<code>catalog/catalog.toml</code>). Añade la receta, abre un pull request y, cuando se acepte, llega a todos los usuarios sin publicar una versión nueva de Barrica.</p>
+      </details>
+    </div>
+  </section>
+
+  <section style="padding-top: 0">
+    <div class="wrap">
+      <div class="final">
+        <h2>Tu Mac también juega</h2>
+        <p>Descarga Barrica, instala Steam desde Descubrir y vuelve a tu biblioteca.</p>
+        <a class="btn btn-primary" href="https://github.com/ibearsmile2319/barrica/releases/latest/download/Barrica.dmg">Descargar Barrica</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Barrica es software libre bajo la <a href="https://github.com/ibearsmile2319/barrica/blob/master/LICENSE">GPL-3.0</a>. Su motor es Wine, bajo la LGPL-2.1+; detalle en los <a href="https://github.com/ibearsmile2319/barrica/blob/master/THIRD_PARTY_NOTICES.md">avisos de terceros</a>. No está afiliada a CodeWeavers, Apple, Valve ni a ninguna marca del catálogo; sus logos se usan solo para identificar cada app.</p>
+    <p><a href="https://github.com/ibearsmile2319/barrica">GitHub</a> · <a href="https://github.com/ibearsmile2319/barrica/releases">Versiones</a> · <a href="https://github.com/ibearsmile2319/barrica/issues">Reportar un problema</a></p>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll("[data-copy]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var text = b.parentElement.querySelector("code").textContent;
+      navigator.clipboard.writeText(text).then(function () {
+        b.textContent = "Copiado";
+        setTimeout(function () { b.textContent = "Copiar"; }, 1600);
+      });
+    });
+  });
+</script>
+</body>
+</html>
