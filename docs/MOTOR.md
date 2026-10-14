@@ -70,8 +70,15 @@ Las secciones marcadas **(por verificar)** son hipótesis que hay que comprobar 
 - Variables nuevas: `D3DM_MTL4` (backend Metal 4 para DX12, activo por defecto en macOS 27) y `D3DM_MAX_FPS` (limitador).
 - Se publican mejoras de un 6 % a un 66 % frente a GPTK 3 según el juego: hay que medirlo nosotros.
 
+**CS2 con el motor propio (2026-10-13, clon del bottle de CrossOver):**
+- Steam funciona (con el parche 0002) y CS2 arranca y se juega (hito M2).
+- **CrossOver no usaba D3DMetal para CS2, sino DXMT.** Su «Automático» elige por juego, y lo delataron las cachés de `$(getconf DARWIN_USER_CACHE_DIR)`: `dxmt/cs2.exe` se escribía en sus sesiones, mientras que `d3dm/cs2.exe` no existía hasta nuestra primera prueba.
+- Con **D3DMetal 4.0 beta 3** el juego «temblaba» y bajaban los FPS al moverse. Lo más probable es la caché de shaders vacía (se compilan en mitad de la partida), aunque no se descarta la beta. Con **DXMT 0.80** va «mucho mejor», según el usuario; aprovecha la caché que ya había creado CrossOver con DXMT 0.72.
+- Las cachés son por nombre de ejecutable y se comparten con CrossOver. Nuestro loader usa el mismo identificador de app que el suyo (`com.codeweavers.CrossOver.wineloader`, CrossOver Hack 10913), así que también comparte la caché de Metal.
+
 **Pendiente:**
-- Steam y un juego DX11 (M2), y CS2 con D3DMetal en un clon de su bottle (M3), midiendo 3.0 contra 4.0 beta 3.
+- Medir con números (mapa «FPS Benchmark») DXMT 0.80 contra D3DMetal 4.0b3, este con su caché ya caliente, y contra CrossOver.
+- Perfiles por juego para que «Automático» elija como CrossOver (CS2 → DXMT); hoy la capa es por bottle.
 - SDL para mandos, GStreamer para vídeos y CUPS.
 
 **Lo que no sabemos (por verificar):** si existe un GPTK 4 (un informe lo menciona); si DXMT 0.80 rinde más o menos que D3DMetal 3.0 en CS2 (no hay benchmark controlado en 2026, solo anécdotas de menos RAM y FPS estables); si el «subconjunto» de Rosetta de macOS 28 cubre Wine.
