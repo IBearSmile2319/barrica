@@ -606,7 +606,11 @@ pub fn from_cxbottle(text: &str) -> BottleConfig {
         }
         match (key.as_str(), value.as_str()) {
             ("WINEMSYNC", v) => c.msync = v == "1",
-            ("WINED3DMETAL", "1") => c.graphics = Graphics::D3dmetal,
+            // Ajuste antiguo: CrossOver 26 lo deja puesto pero manda CX_GRAPHICS_BACKEND ("" = Automático,
+            // que elige por juego: para CS2, DXMT). Solo cuenta si no hay CX_GRAPHICS_BACKEND.
+            ("WINED3DMETAL", "1") if !ini.contains_key(&(section.clone(), "CX_GRAPHICS_BACKEND".into())) => {
+                c.graphics = Graphics::D3dmetal
+            }
             ("CX_GRAPHICS_BACKEND", v) => {
                 if let Some(g) = Graphics::parse(&v.to_lowercase()) {
                     c.graphics = g;
@@ -1097,7 +1101,10 @@ mod tests {
     #[test]
     fn crossover_config() {
         let c = from_cxbottle(CX);
-        assert_eq!((c.windows.as_str(), c.arch, c.graphics, c.msync), ("win10", Arch::Win64, Graphics::D3dmetal, true));
+        assert_eq!((c.windows.as_str(), c.arch, c.graphics, c.msync), ("win10", Arch::Win64, Graphics::Auto, true));
+        let old = from_cxbottle("[EnvironmentVariables]\n\"WINED3DMETAL\" = \"1\"\n"); // CrossOver antiguo
+        assert_eq!(old.graphics, Graphics::D3dmetal);
+        assert_eq!(from_cxbottle("[EnvironmentVariables]\n\"CX_GRAPHICS_BACKEND\" = \"dxmt\"\n").graphics, Graphics::Dxmt);
         assert_eq!(c.env.len(), 1);
         assert_eq!(c.env["WINEDLLOVERRIDES"], "winemenubuilder.exe=d"); // el «=» del valor sobrevive
         let xp = from_cxbottle("[Bottle]\n\"Template\" = \"winxp\"\n");
@@ -1187,7 +1194,7 @@ mod tests {
         fs::create_dir_all(cx.join("drive_c")).unwrap();
         fs::write(cx.join("cxbottle.conf"), CX).unwrap();
         let imported = import_crossover(&cx, "CS2").unwrap();
-        assert_eq!(imported.config.graphics, Graphics::D3dmetal);
+        assert_eq!(imported.config.graphics, Graphics::Auto);
         assert!(cx.join("cxbottle.conf").exists()); // el original sigue ahí
 
         // Vinculado: corre con el `wine --bottle` de CrossOver y nunca se toca su carpeta.
@@ -1211,7 +1218,7 @@ mod tests {
         assert!(layer.join("wine/x86_64-windows/nvngx.dll").exists() && layer.join("License.rtf").exists());
         assert!(layer.join("wine/x86_64-unix/d3d11.so").exists() && layer.join("external/libd3dshared.dylib").exists());
         install_gptk(&gptk.join("redist")).unwrap(); // reinstalar reemplaza
-        assert_eq!((linked.path.as_path(), linked.config.graphics), (cx.as_path(), Graphics::D3dmetal));
+        assert_eq!((linked.path.as_path(), linked.config.graphics), (cx.as_path(), Graphics::Auto));
         let (mut child, _) = launch(&linked, &cx.join("drive_c/cs2.exe"), &[], None).unwrap();
         child.wait().unwrap();
         assert!(calls().contains("--bottle Counter-Strike 2 start /wait /unix"));
