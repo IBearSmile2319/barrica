@@ -8,6 +8,7 @@
 <meta property="og:title" content="Barrica: juegos y apps de Windows en tu Mac">
 <meta property="og:description" content="Libre y gratis. Motor propio basado en Wine, catálogo con Steam, Battle.net, Epic y más, y snapshots instantáneos.">
 <meta property="og:image" content="img/descubrir.png">
+<meta property="og:video" content="video/barrica.mp4">
 <meta property="og:type" content="website">
 <link rel="icon" href="img/favicon.png">
 <style>
@@ -86,6 +87,10 @@ img { max-width: 100%; height: auto; display: block; }
 .shot .bar i:nth-child(2) { background: #febc2e; }
 .shot .bar i:nth-child(3) { background: #28c840; }
 
+/* Video */
+.video { max-width: 1040px; margin: 0 auto; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line); background: #120e14; }
+.video video { display: block; width: 100%; height: auto; }
+
 /* Secciones */
 section { padding: 84px 0; }
 .eyebrow { color: var(--wine-2); font-weight: 650; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
@@ -157,6 +162,7 @@ footer p { margin: 0; max-width: 640px; }
   <div class="wrap">
     <a class="brand" href="#"><img src="img/icon.png" alt="">Barrica</a>
     <nav>
+      <a href="#video">Video</a>
       <a href="#funciones">Funciones</a>
       <a href="#motor">Motor</a>
       <a href="#instalar">Instalar</a>
@@ -187,6 +193,17 @@ footer p { margin: 0; max-width: 640px; }
       <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="img/descubrir.png" alt="La pantalla Descubrir de Barrica, con Steam, Battle.net, Epic Games y GOG Galaxy destacadas" width="1180" height="780"></div>
     </div>
   </div>
+
+  <section id="video" style="padding-bottom: 20px">
+    <div class="wrap center">
+      <div class="eyebrow">En 30 segundos</div>
+      <h2>Mira Barrica en acción</h2>
+      <p class="sub">Del catálogo al juego: así se instala y se abre una app de Windows en tu Mac.</p>
+      <div class="video">
+        <video src="video/barrica.mp4" poster="video/barrica-poster.jpg" controls muted loop playsinline preload="metadata" width="1280" height="720"></video>
+      </div>
+    </div>
+  </section>
 
   <section id="funciones">
     <div class="wrap">

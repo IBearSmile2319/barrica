@@ -17,7 +17,8 @@
 </p>
 
 <p align="center">
-  <img src="site/img/descubrir.png" width="860" alt="La pantalla Descubrir de Barrica">
+  <a href="https://ibearsmile2319.github.io/barrica/#video"><img src="site/video/barrica.gif" width="860" alt="Video de presentación de Barrica: Descubrir, instalación, el motor y más"></a><br>
+  <sub>Video en alta calidad: <a href="site/video/barrica.mp4">barrica.mp4</a> · en la <a href="https://ibearsmile2319.github.io/barrica/#video">web</a></sub>
 </p>
 
 Barrica instala y abre programas de Windows en macOS. Cada programa vive en su propio **bottle**, un Windows aparte (un `WINEPREFIX` de Wine) que Barrica crea, prepara y cuida por ti. Trae su propio motor, compilado por nosotros desde el código libre de Wine, y un catálogo para instalar Steam, Battle.net, Epic y otras apps con un clic.
@@ -228,7 +229,8 @@ Tests: `cargo test` (incluye un ciclo completo con un `wine` falso) y `cargo cli
 | `src/main.rs` | Sin argumentos abre la app; con argumentos funciona como línea de comandos. |
 | `engine/` | El motor: `build.sh`, `patches/`, `check.sh` y `smoke.c`. |
 | `catalog/` | El catálogo de apps y su formato. |
-| `site/` | La web, publicada en GitHub Pages. |
+| `site/` | La web, publicada en GitHub Pages, con el video en `site/video/`. |
+| `tools/promo/` | El video de presentación: `promo.html` y `render.js`, que lo graba cuadro a cuadro. |
 | `docs/MOTOR.md` | Diseño, decisiones y mediciones del motor. |
 | `ROADMAP.md` | Lo que falta y el plan. |
 

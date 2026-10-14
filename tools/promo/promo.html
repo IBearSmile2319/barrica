@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Barrica: video de presentación</title>
+<!--
+  Video de presentación de Barrica, hecho con HTML y CSS. tools/promo/render.js lo graba cuadro a cuadro
+  (cada animación se coloca en el instante exacto, así que el resultado es fluido y repetible) y genera
+  site/video/barrica.mp4, su póster y el GIF del README. Abrirlo en un navegador lo reproduce en vivo.
+-->
+<style>
+:root { --wine: #b3264f; --wine-2: #d23a6a; --ink: #f4eef6; --muted: rgba(244, 238, 246, .72); }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1280px; height: 720px; overflow: hidden; background: #120e14; }
+body { font-family: Inter, -apple-system, "Avenir Next", "Segoe UI", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+.stage { position: relative; width: 1280px; height: 720px; overflow: hidden;
+  background: radial-gradient(1200px 700px at 15% 0%, #5a1430 0%, transparent 60%), radial-gradient(900px 600px at 100% 100%, #2b0b25 0%, transparent 60%), #120e14; }
+.glow { position: absolute; width: 900px; height: 900px; border-radius: 50%; left: -200px; top: -380px;
+  background: radial-gradient(closest-side, rgba(210, 58, 106, .35), transparent 70%); animation: drift 27s linear both; }
+@keyframes drift { from { transform: translate(0, 0); } to { transform: translate(520px, 260px); } }
+
+.scene { position: absolute; inset: 0; opacity: 0; }
+@keyframes scene { 0% { opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { opacity: 0; transform: scale(.6); } 70% { opacity: 1; transform: scale(1.06); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes slidein { from { opacity: 0; transform: translateX(160px) rotateY(-12deg); } to { opacity: 1; transform: rotateY(-6deg); } }
+@keyframes zoom { from { transform: scale(1); } to { transform: scale(1.14) translate(-3%, -4%); } }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(210, 58, 106, .55); } 50% { box-shadow: 0 0 0 18px rgba(210, 58, 106, 0); } }
+
+.a { animation-fill-mode: both; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+.title { font-weight: 760; letter-spacing: -.03em; line-height: 1.02; }
+.kicker { color: var(--wine-2); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 18px; }
+.lead { color: var(--muted); font-size: 26px; line-height: 1.35; }
+.win { border-radius: 14px; overflow: hidden; background: #17141a; box-shadow: 0 40px 90px -20px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .08); }
+.win .bar { display: flex; gap: 7px; padding: 10px 13px; background: #221d25; }
+.win .bar i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; }
+.win .bar i:nth-child(2) { background: #febc2e; }
+.win .bar i:nth-child(3) { background: #28c840; }
+.win img { display: block; width: 100%; }
+.caption { position: absolute; left: 64px; bottom: 54px; padding: 16px 26px; border-radius: 18px; font-size: 34px; font-weight: 700; letter-spacing: -.01em;
+  background: rgba(18, 14, 20, .82); backdrop-filter: blur(10px); box-shadow: 0 20px 50px -10px rgba(0, 0, 0, .7), 0 0 0 1px rgba(255, 255, 255, .08); }
+.caption b { color: var(--wine-2); }
+
+/* 1. Presentación (0 – 3,4 s) */
+#s1 { animation: scene 3.4s 0s both; display: grid; place-items: center; text-align: center; }
+#s1 img { width: 168px; height: 168px; margin: 0 auto 26px; filter: drop-shadow(0 24px 40px rgba(0, 0, 0, .6)); animation: pop .9s .15s both; }
+#s1 .title { font-size: 104px; animation: rise .8s .55s both; }
+#s1 .lead { margin-top: 14px; animation: rise .8s .85s both; }
+
+/* 2. Descubrir (3,4 – 7,8 s) */
+#s2 { animation: scene 4.4s 3.4s both; perspective: 1600px; }
+#s2 .text { position: absolute; left: 70px; top: 190px; width: 430px; }
+#s2 .kicker { animation: rise .7s 3.7s both; }
+#s2 .title { font-size: 60px; margin: 14px 0 18px; animation: rise .7s 3.85s both; }
+#s2 .lead { animation: rise .7s 4.05s both; }
+#s2 .win { position: absolute; left: 540px; top: 104px; width: 780px; animation: slidein 1s 3.6s both; }
+
+/* 3. Catálogo (7,8 – 11,8 s) */
+#s3 { animation: scene 4s 7.8s both; }
+#s3 .win { position: absolute; left: 110px; top: 40px; width: 1060px; }
+#s3 .win img { animation: zoom 4s 7.8s linear both; transform-origin: 60% 40%; }
+#s3 .caption { animation: rise .7s 8.3s both; }
+
+/* 4. Instalando (11,8 – 15,6 s) */
+#s4 { animation: scene 3.8s 11.8s both; }
+#s4 .win { position: absolute; left: 110px; top: 40px; width: 1060px; }
+#s4 .win img { animation: zoom 3.8s 11.8s linear both; transform-origin: 85% 55%; }
+#s4 .caption { animation: rise .7s 12.2s both; }
+
+/* 5. Motor (15,6 – 20,6 s) */
+#s5 { animation: scene 5s 15.6s both; }
+#s5 .text { position: absolute; left: 70px; top: 170px; width: 520px; }
+#s5 .kicker { animation: rise .7s 15.9s both; }
+#s5 .title { font-size: 58px; margin: 14px 0 18px; animation: rise .7s 16.05s both; }
+#s5 .lead { animation: rise .7s 16.25s both; }
+#s5 .stack { position: absolute; right: 70px; top: 108px; width: 540px; display: flex; flex-direction: column; gap: 14px; }
+.layer { display: flex; justify-content: space-between; align-items: center; padding: 20px 26px; border-radius: 18px; font-size: 25px; font-weight: 650;
+  background: rgba(255, 255, 255, .06); box-shadow: 0 0 0 1px rgba(255, 255, 255, .09); }
+.layer small { font-size: 18px; color: var(--muted); font-weight: 450; }
+.layer.hot { background: linear-gradient(120deg, #b3264f, #6e1433); box-shadow: 0 20px 50px -14px rgba(179, 38, 79, .8); }
+.layer.hot small { color: rgba(255, 255, 255, .85); }
+#s5 .layer:nth-child(1) { animation: rise .55s 16.3s both; }
+#s5 .layer:nth-child(2) { animation: rise .55s 16.65s both; }
+#s5 .layer:nth-child(3) { animation: rise .55s 17.0s both, pulse 1.4s 17.6s 2 both; }
+#s5 .layer:nth-child(4) { animation: rise .55s 17.35s both; }
+#s5 .layer:nth-child(5) { animation: rise .55s 17.7s both; }
+
+/* 6. Más (20,6 – 24 s) */
+#s6 { animation: scene 3.4s 20.6s both; }
+#s6 .bg { position: absolute; inset: -40px; background: url(../../site/img/bottle.png) center / cover; filter: blur(18px) brightness(.45); }
+#s6 .wrap { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+#s6 .title { font-size: 64px; margin-bottom: 40px; animation: rise .7s 20.85s both; }
+#s6 .chips { display: flex; gap: 18px; justify-content: center; }
+.chip { padding: 20px 28px; border-radius: 20px; font-size: 26px; font-weight: 650; background: rgba(18, 14, 20, .78); box-shadow: 0 0 0 1px rgba(255, 255, 255, .1), 0 20px 40px -10px rgba(0, 0, 0, .6); }
+.chip span { display: block; color: var(--wine-2); font-size: 15px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 6px; }
+#s6 .chip:nth-child(1) { animation: pop .6s 21.2s both; }
+#s6 .chip:nth-child(2) { animation: pop .6s 21.45s both; }
+#s6 .chip:nth-child(3) { animation: pop .6s 21.7s both; }
+
+/* 7. Llamada final (24 – 28 s) */
+#s7 { animation: scene 4s 24s both; display: grid; place-items: center; text-align: center; }
+#s7 img { width: 120px; height: 120px; margin: 0 auto 22px; animation: pop .8s 24.2s both; }
+#s7 .title { font-size: 76px; animation: rise .7s 24.45s both; }
+#s7 .lead { margin-top: 12px; animation: rise .7s 24.7s both; }
+#s7 .url { display: inline-block; margin-top: 30px; padding: 16px 30px; border-radius: 999px; font-size: 26px; font-weight: 700; background: var(--wine); box-shadow: 0 18px 44px -12px rgba(179, 38, 79, .9); animation: rise .7s 25s both; }
+#s7 .fine { margin-top: 22px; color: var(--muted); font-size: 19px; animation: rise .7s 25.2s both; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="glow a"></div>
+
+  <section class="scene" id="s1">
+    <div>
+      <img src="../../site/img/icon.png" alt="">
+      <h1 class="title">Barrica</h1>
+      <p class="lead">Juegos y apps de Windows en tu Mac</p>
+    </div>
+  </section>
+
+  <section class="scene" id="s2">
+    <div class="text">
+      <div class="kicker">Descubrir</div>
+      <h2 class="title">Instala con un clic</h2>
+      <p class="lead">Steam, Battle.net, Epic, GOG, EA y más, siempre en su última versión.</p>
+    </div>
+    <div class="win"><div class="bar"><i></i><i></i><i></i></div><img src="../../site/img/descubrir.png" alt=""></div>
+  </section>
+
+  <section class="scene" id="s3">
+    <div class="win"><div class="bar"><i></i><i></i><i></i></div><img src="../../site/img/catalogo.png" alt=""></div>
+    <div class="caption">Cada app en <b>su propio bottle</b></div>
+  </section>
+
+  <section class="scene" id="s4">
+    <div class="win"><div class="bar"><i></i><i></i><i></i></div><img src="../../site/img/instalando.png" alt=""></div>
+    <div class="caption">Descarga, prepara e <b>instala sola</b></div>
+  </section>
+
+  <section class="scene" id="s5">
+    <div class="text">
+      <div class="kicker">Motor propio</div>
+      <h2 class="title">Nuestro Wine, afinado para jugar</h2>
+      <p class="lead">Wine 11 desde el código libre de CrossOver 26.3, con DirectX directo a Metal.</p>
+    </div>
+    <div class="stack">
+      <div class="layer">Tu juego de Windows <small>x86_64</small></div>
+      <div class="layer">Rosetta 2 <small>CPU</small></div>
+      <div class="layer hot">Motor Barrica · Wine 11 <small>MSync</small></div>
+      <div class="layer">DXMT · D3DMetal · MoltenVK <small>DirectX</small></div>
+      <div class="layer">Metal · GPU del Mac <small>Apple Silicon</small></div>
+    </div>
+  </section>
+
+  <section class="scene" id="s6">
+    <div class="bg"></div>
+    <div class="wrap">
+      <div>
+        <h2 class="title">Y mucho más</h2>
+        <div class="chips">
+          <div class="chip"><span>Snapshots</span>Vuelve atrás en un segundo</div>
+          <div class="chip"><span>Registros</span>Sabes por qué no abre</div>
+          <div class="chip"><span>Steam</span>Tu biblioteca con portadas</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scene" id="s7">
+    <div>
+      <img src="../../site/img/icon.png" alt="">
+      <h2 class="title">Tu Mac también juega</h2>
+      <p class="lead">Gratis y de código abierto</p>
+      <div class="url">ibearsmile2319.github.io/barrica</div>
+      <p class="fine">GPL-3.0 · macOS 11 o superior · Apple Silicon</p>
+    </div>
+  </section>
+</div>
+<script>
+  // Al abrirlo en un navegador se reproduce en bucle; render.js pausa todo y fija cada cuadro.
+  const LENGTH = 28000;
+  if (!location.search.includes("render")) {
+    setInterval(() => document.getAnimations().forEach(a => { a.currentTime = 0; a.play(); }), LENGTH);
+  }
+</script>
+</body>
+</html>
