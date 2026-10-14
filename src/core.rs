@@ -909,11 +909,25 @@ fn lnk_icons(b: &Bottle) -> BTreeMap<String, PathBuf> {
         .collect()
 }
 
-/// ¿Hay un wineserver vivo para este bottle? Wine crea `/tmp/.wine-<uid>/server-<dev>-<inode>/socket`.
+/// ¿Hay un wineserver vivo para este bottle? Wine crea `/tmp/.wine-<uid>/server-<dev>-<inode>/` y el
+/// wineserver tiene su `lock` bloqueado (fcntl) mientras vive. Mirar solo si existe `socket` engaña:
+/// si el wineserver muere a la fuerza, el socket se queda.
 pub fn is_running(b: &Bottle) -> bool {
     use std::os::unix::fs::MetadataExt;
     let Ok(m) = fs::metadata(&b.path) else { return false };
-    Path::new(&format!("/tmp/.wine-{}/server-{:x}-{:x}/socket", m.uid(), m.dev(), m.ino())).exists()
+    lock_held(Path::new(&format!("/tmp/.wine-{}/server-{:x}-{:x}/lock", m.uid(), m.dev(), m.ino())))
+}
+
+/// ¿Otro proceso tiene un bloqueo fcntl sobre el fichero? F_GETLK no lo toma, solo pregunta, como hace
+/// Wine en server/request.c. Cerrar nuestro descriptor no suelta el bloqueo de otro proceso.
+fn lock_held(file: &Path) -> bool {
+    use std::os::fd::AsRawFd;
+    let Ok(f) = fs::OpenOptions::new().read(true).write(true).open(file) else { return false };
+    // SAFETY: flock es un struct C plano; F_GETLK solo lo lee y lo rellena.
+    let mut fl: libc::flock = unsafe { std::mem::zeroed() };
+    fl.l_type = libc::F_WRLCK as _;
+    fl.l_whence = libc::SEEK_SET as _;
+    (unsafe { libc::fcntl(f.as_raw_fd(), libc::F_GETLK, &mut fl) }) == 0 && fl.l_type != libc::F_UNLCK as _
 }
 
 fn collect_lnk(dir: &Path, out: &mut Vec<Program>, icons: &BTreeMap<String, PathBuf>, depth: u8) {
@@ -1015,6 +1029,30 @@ mod tests {
 "CX_GRAPHICS_BACKEND" = ""
 "WINEDLLOVERRIDES" = "winemenubuilder.exe=d"
 "#;
+
+    #[test]
+    fn running_needs_a_held_lock() {
+        use std::io::BufRead;
+        let lock = std::env::temp_dir().join(format!("barrica-lock-{}", std::process::id()));
+        assert!(!lock_held(&lock)); // sin wineserver nunca arrancado
+        fs::write(&lock, "").unwrap();
+        assert!(!lock_held(&lock)); // wineserver muerto a la fuerza: el fichero queda, el bloqueo no
+        // Otro proceso lo bloquea como el wineserver (struct flock de macOS: start, len, pid, type, whence).
+        let mut holder = Command::new("perl")
+            .args(["-MFcntl", "-e", r#"open my $f, "+<", $ARGV[0] or die; fcntl($f, F_SETLK, pack("qqlss", 0, 0, 0, F_WRLCK, SEEK_SET)) or die "$!"; $| = 1; print "ok\n"; sleep 10"#])
+            .arg(&lock)
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut line = String::new();
+        std::io::BufReader::new(holder.stdout.take().unwrap()).read_line(&mut line).unwrap();
+        assert_eq!(line, "ok\n");
+        assert!(lock_held(&lock));
+        let _ = holder.kill();
+        let _ = holder.wait();
+        assert!(!lock_held(&lock));
+        let _ = fs::remove_file(lock);
+    }
 
     #[test]
     fn installed_engines_are_listed() {

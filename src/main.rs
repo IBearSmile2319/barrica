@@ -48,7 +48,8 @@ fn cli(args: &[String]) -> cx::Result<()> {
         "list" => {
             for b in cx::list() {
                 let size = cx::size(&b.path).map(cx::human).unwrap_or_default();
-                println!("{:<28} {:<6} {:<6} {size}", b.name, b.config.windows, format!("{:?}", b.config.arch));
+                let on = if cx::is_running(&b) { "  ● en ejecución" } else { "" };
+                println!("{:<28} {:<6} {:<6} {size}{on}", b.name, b.config.windows, format!("{:?}", b.config.arch));
             }
         }
         "create" => {
