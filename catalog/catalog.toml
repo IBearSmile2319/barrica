@@ -1,0 +1,285 @@
+# Catálogo de instalación de Barrica.
+#
+# Barrica lo descarga solo al abrirse (ajuste `catalog_url`), así que añadir o corregir una app
+# aquí llega a la app sin publicar una versión nueva. Formato: catalog/README.md.
+
+format = 1
+updated = "2026-10-14"
+
+[[category]]
+id = "tiendas"
+name = "Tiendas de juegos"
+
+[[category]]
+id = "utilidades"
+name = "Utilidades"
+
+[[category]]
+id = "documentos"
+name = "Oficina y documentos"
+
+[[category]]
+id = "multimedia"
+name = "Multimedia"
+
+[[category]]
+id = "desarrollo"
+name = "Desarrollo y redes"
+
+[[category]]
+id = "comunicacion"
+name = "Comunicación"
+
+# ---------- Tiendas de juegos ----------
+
+[[app]]
+id = "steam"
+name = "Steam"
+publisher = "Valve"
+category = "tiendas"
+featured = true
+summary = "La tienda y biblioteca de juegos de Valve."
+description = "Compra, descarga y juega tu biblioteca de Steam. Barrica añade un lanzador directo por cada juego instalado, con su portada."
+icon = "steam"
+color = "#1B2838"
+homepage = "https://store.steampowered.com"
+url = "https://cdn.akamai.steamstatic.com/client/installer/SteamSetup.exe"
+exe = ["Program Files (x86)/Steam/steam.exe"]
+notes = "Los juegos con antitrampas a nivel de kernel no funcionan en Wine."
+
+[[app]]
+id = "battlenet"
+name = "Battle.net"
+publisher = "Blizzard"
+category = "tiendas"
+featured = true
+summary = "Diablo, World of Warcraft, Overwatch y Call of Duty."
+description = "El lanzador de Blizzard. El instalador descarga la última versión de Battle.net al abrirse."
+icon = "battledotnet"
+color = "#148EFF"
+homepage = "https://battle.net"
+url = "https://downloader.battle.net/download/getInstaller?os=win&installer=Battle.net-Setup.exe"
+file = "Battle.net-Setup.exe"
+exe = ["Program Files (x86)/Battle.net/Battle.net Launcher.exe", "Program Files (x86)/Battle.net/Battle.net.exe"]
+
+[[app]]
+id = "epic"
+name = "Epic Games"
+publisher = "Epic Games"
+category = "tiendas"
+featured = true
+summary = "La tienda de Epic, con juegos gratis cada semana."
+description = "El Epic Games Launcher. La versión sale de winget-pkgs, que la comunidad mantiene al día."
+icon = "epicgames"
+color = "#2A2A2A"
+homepage = "https://store.epicgames.com"
+winget = "EpicGames.EpicGamesLauncher"
+exe = ["Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win64/EpicGamesLauncher.exe", "Program Files (x86)/Epic Games/Launcher/Portal/Binaries/Win32/EpicGamesLauncher.exe"]
+
+[[app]]
+id = "gog"
+name = "GOG Galaxy"
+publisher = "GOG"
+category = "tiendas"
+featured = true
+summary = "Juegos sin DRM y clásicos listos para jugar."
+icon = "gogdotcom"
+color = "#86328A"
+homepage = "https://www.gog.com/galaxy"
+winget = "GOG.Galaxy"
+exe = ["Program Files (x86)/GOG Galaxy/GalaxyClient.exe"]
+
+[[app]]
+id = "ea"
+name = "EA app"
+publisher = "Electronic Arts"
+category = "tiendas"
+summary = "EA Sports FC, Battlefield, Los Sims y más."
+icon = "ea"
+color = "#E4202E"
+homepage = "https://www.ea.com/ea-app"
+winget = "ElectronicArts.EADesktop"
+exe = ["Program Files/Electronic Arts/EA Desktop/EA Desktop/EALauncher.exe", "Program Files/Electronic Arts/EA Desktop/EA Desktop/EADesktop.exe"]
+
+[[app]]
+id = "ubisoft"
+name = "Ubisoft Connect"
+publisher = "Ubisoft"
+category = "tiendas"
+summary = "Assassin's Creed, Far Cry y el resto de Ubisoft."
+icon = "ubisoft"
+color = "#0070FF"
+homepage = "https://ubisoftconnect.com"
+url = "https://static3.cdn.ubi.com/orbit/launcher_installer/UbisoftConnectInstaller.exe"
+exe = ["Program Files (x86)/Ubisoft/Ubisoft Game Launcher/UbisoftConnect.exe"]
+
+[[app]]
+id = "rockstar"
+name = "Rockstar Games Launcher"
+publisher = "Rockstar Games"
+category = "tiendas"
+summary = "GTA V, Red Dead Redemption 2 y sus clásicos."
+icon = "rockstargames"
+color = "#FCAF17"
+homepage = "https://www.rockstargames.com/launcher"
+url = "https://gamedownloads.rockstargames.com/public/installer/Rockstar-Games-Launcher.exe"
+exe = ["Program Files/Rockstar Games/Launcher/Launcher.exe"]
+
+[[app]]
+id = "amazon-games"
+name = "Amazon Games"
+publisher = "Amazon"
+category = "tiendas"
+summary = "Los juegos de Prime Gaming."
+color = "#232F3E"
+homepage = "https://gaming.amazon.com"
+url = "https://download.amazongames.com/AmazonGamesSetup.exe"
+exe = ["users/*/AppData/Local/Amazon Games/App/Amazon Games.exe"]
+
+[[app]]
+id = "itch"
+name = "itch.io"
+publisher = "itch corp"
+category = "tiendas"
+summary = "Miles de juegos independientes."
+icon = "itchdotio"
+color = "#FA5C5C"
+homepage = "https://itch.io/app"
+url = "https://itch.io/app/download?platform=windows"
+file = "itch-setup.exe"
+exe = ["users/*/AppData/Local/itch/itch.exe"]
+
+# ---------- Utilidades ----------
+
+[[app]]
+id = "7zip"
+name = "7-Zip"
+publisher = "Igor Pavlov"
+category = "utilidades"
+summary = "Comprime y abre 7z, rar, zip, iso y casi todo."
+icon = "7zip"
+color = "#2C6EBE"
+homepage = "https://www.7-zip.org"
+winget = "7zip.7zip"
+exe = ["Program Files/7-Zip/7zFM.exe", "Program Files (x86)/7-Zip/7zFM.exe"]
+
+[[app]]
+id = "winrar"
+name = "WinRAR"
+publisher = "RARLAB"
+category = "utilidades"
+summary = "El compresor de archivos RAR de siempre."
+color = "#6B3FA0"
+homepage = "https://www.rarlab.com"
+winget = "RARLab.WinRAR"
+exe = ["Program Files/WinRAR/WinRAR.exe", "Program Files (x86)/WinRAR/WinRAR.exe"]
+
+[[app]]
+id = "autohotkey"
+name = "AutoHotkey"
+publisher = "AutoHotkey"
+category = "utilidades"
+summary = "Atajos y automatizaciones con scripts."
+icon = "autohotkey"
+color = "#334455"
+homepage = "https://www.autohotkey.com"
+winget = "AutoHotkey.AutoHotkey"
+exe = ["Program Files/AutoHotkey/UX/AutoHotkeyUX.exe", "Program Files/AutoHotkey/v2/AutoHotkey64.exe"]
+
+# ---------- Oficina y documentos ----------
+
+[[app]]
+id = "notepadpp"
+name = "Notepad++"
+publisher = "Don Ho"
+category = "documentos"
+summary = "Editor de texto y código, ligero y con pestañas."
+icon = "notepadplusplus"
+color = "#90E59A"
+homepage = "https://notepad-plus-plus.org"
+winget = "Notepad++.Notepad++"
+exe = ["Program Files/Notepad++/notepad++.exe", "Program Files (x86)/Notepad++/notepad++.exe"]
+
+[[app]]
+id = "sumatra"
+name = "SumatraPDF"
+publisher = "Krzysztof Kowalczyk"
+category = "documentos"
+summary = "Lector de PDF, ePub y cómics, muy rápido."
+color = "#FFD43B"
+homepage = "https://www.sumatrapdfreader.org"
+winget = "SumatraPDF.SumatraPDF"
+exe = ["users/*/AppData/Local/SumatraPDF/SumatraPDF.exe", "Program Files/SumatraPDF/SumatraPDF.exe"]
+
+# ---------- Multimedia ----------
+
+[[app]]
+id = "foobar2000"
+name = "foobar2000"
+publisher = "Peter Pawlowski"
+category = "multimedia"
+summary = "Reproductor de música avanzado y personalizable."
+icon = "foobar2000"
+color = "#2B2B2B"
+homepage = "https://www.foobar2000.org"
+winget = "PeterPawlowski.foobar2000"
+exe = ["Program Files/foobar2000/foobar2000.exe", "Program Files (x86)/foobar2000/foobar2000.exe"]
+
+[[app]]
+id = "irfanview"
+name = "IrfanView"
+publisher = "Irfan Skiljan"
+category = "multimedia"
+summary = "Visor y editor de imágenes clásico."
+color = "#D32F2F"
+homepage = "https://www.irfanview.com"
+winget = "IrfanSkiljan.IrfanView"
+exe = ["Program Files/IrfanView/i_view64.exe", "Program Files (x86)/IrfanView/i_view32.exe"]
+
+[[app]]
+id = "faststone"
+name = "FastStone Image Viewer"
+publisher = "FastStone"
+category = "multimedia"
+summary = "Explora, compara y retoca fotos."
+color = "#0C7ABF"
+homepage = "https://www.faststone.org"
+winget = "FastStone.Viewer"
+exe = ["Program Files (x86)/FastStone Image Viewer/FSViewer.exe", "Program Files/FastStone Image Viewer/FSViewer.exe"]
+
+# ---------- Desarrollo y redes ----------
+
+[[app]]
+id = "heidisql"
+name = "HeidiSQL"
+publisher = "Ansgar Becker"
+category = "desarrollo"
+summary = "Cliente para MySQL, MariaDB, PostgreSQL y SQL Server."
+color = "#4AA35A"
+homepage = "https://www.heidisql.com"
+winget = "HeidiSQL.HeidiSQL"
+exe = ["Program Files/HeidiSQL/heidisql.exe"]
+
+[[app]]
+id = "winscp"
+name = "WinSCP"
+publisher = "Martin Přikryl"
+category = "desarrollo"
+summary = "Transferencias SFTP, FTP, WebDAV y S3."
+color = "#2D7BCF"
+homepage = "https://winscp.net"
+winget = "WinSCP.WinSCP"
+exe = ["Program Files (x86)/WinSCP/WinSCP.exe", "users/*/AppData/Local/Programs/WinSCP/WinSCP.exe"]
+
+# ---------- Comunicación ----------
+
+[[app]]
+id = "mirc"
+name = "mIRC"
+publisher = "mIRC Co."
+category = "comunicacion"
+summary = "El cliente de IRC de toda la vida."
+color = "#3C8F3C"
+homepage = "https://www.mirc.com"
+winget = "mIRC.mIRC"
+exe = ["Program Files (x86)/mIRC/mirc.exe", "Program Files/mIRC/mirc.exe"]

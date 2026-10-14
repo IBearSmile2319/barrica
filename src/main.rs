@@ -1,10 +1,13 @@
+mod about;
+mod catalog;
 mod core;
 mod gui;
 
+use crate::catalog::Target;
 use crate::core::{self as cx, Arch};
 use std::path::Path;
 
-const HELP: &str = "Barrica: bottles de Wine para macOS.
+const HELP: &str = "Barrica: bottles de Wine para macOS. Licencia GPL-3.0-or-later.
 
   barrica                                 abre la app
   barrica list                            bottles y su tamaño
@@ -26,9 +29,14 @@ const HELP: &str = "Barrica: bottles de Wine para macOS.
   barrica crossover                       bottles de CrossOver que se pueden importar
   barrica link-crossover <bottle> [nombre]   usar un bottle de CrossOver con su motor (p. ej. CS2)
   barrica import-crossover <bottle> [nombre] copia independiente (clon APFS)
+  barrica catalog [texto]                 apps que Barrica sabe instalar (se actualiza solo)
+  barrica install <app> [bottle]          instala una app del catálogo (en un bottle nuevo si no existe)
   barrica winetricks <bottle> <verbos...> p. ej. vcrun2022 dotnet48
   barrica engines                         motores Wine detectados
-  barrica engine <ruta a wine>            elegir motor";
+  barrica engine <ruta a wine>            elegir motor
+  barrica version                         versión, motor y sistema (para reportar errores)
+  barrica gptk <carpeta>                  instala D3DMetal del Game Porting Toolkit de Apple
+                                          (el volumen «Evaluation environment for Windows games»)";
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -46,7 +54,8 @@ fn cli(args: &[String]) -> cx::Result<()> {
         "list" => {
             for b in cx::list() {
                 let size = cx::size(&b.path).map(cx::human).unwrap_or_default();
-                println!("{:<28} {:<6} {:<6} {size}", b.name, b.config.windows, format!("{:?}", b.config.arch));
+                let on = if cx::is_running(&b) { "  ● en ejecución" } else { "" };
+                println!("{:<28} {:<6} {:<6} {size}{on}", b.name, b.config.windows, format!("{:?}", b.config.arch));
             }
         }
         "create" => {
@@ -96,9 +105,38 @@ fn cli(args: &[String]) -> cx::Result<()> {
             let name = args.get(2).map(String::as_str).unwrap_or(a(1)?);
             println!("Importado como «{}»", cx::import_crossover(&src, name)?.name);
         }
+        "catalog" => {
+            let c = catalog::refresh().unwrap_or_else(|_| catalog::load());
+            for app in c.search(&args[1..].join(" "), None) {
+                println!("{:<14} {:<26} {:<22} {}", app.id, app.name, c.category_name(&app.category), app.source());
+            }
+        }
+        "install" => {
+            let c = catalog::refresh().unwrap_or_else(|_| catalog::load());
+            let id = a(1)?;
+            let app = c.app(id).ok_or_else(|| format!("El catálogo no tiene «{id}». Mira `barrica catalog`."))?;
+            let name = args.get(2).cloned().unwrap_or_else(|| app.name.clone());
+            let target = if cx::get(&name).is_ok() { Target::Existing(name) } else { Target::New(name) };
+            let last = std::cell::RefCell::new(String::new());
+            let done = catalog::install(app, &target, &|step| {
+                let label = step.label();
+                let head = label.split('…').next().unwrap_or_default().to_string();
+                if *last.borrow() != head {
+                    println!("{label}");
+                    *last.borrow_mut() = head;
+                }
+            })?;
+            for w in &done.warnings {
+                eprintln!("aviso: {w}");
+            }
+            let version = done.version.map(|v| format!(" {v}")).unwrap_or_default();
+            println!("{}{version} instalado en «{}».", app.name, done.bottle);
+        }
         "winetricks" => cx::winetricks(&bottle()?, &args[2..])?,
         "engines" => cx::engines().iter().for_each(|e| println!("{}\t{}", e.label, e.wine.display())),
         "engine" => cx::Settings { engine: Some(a(1)?.into()), ..cx::Settings::load() }.save()?,
+        "gptk" => println!("D3DMetal instalado en {}", cx::install_gptk(Path::new(&a(1)?))?.display()),
+        "version" | "-V" | "--version" => print!("{}", about::report(&about::gather())),
         "help" | "-h" | "--help" => println!("{HELP}"),
         other => return Err(format!("Comando desconocido «{other}».\n\n{HELP}")),
     }

@@ -1,5 +1,10 @@
-//! Ventana principal: bottles a la izquierda; a la derecha el bottle con su biblioteca.
+//! Ventana principal: bottles a la izquierda; a la derecha el bottle con su biblioteca o «Descubrir».
 
+mod discover;
+mod info;
+
+use crate::about;
+use crate::catalog::{self, Catalog, Step};
 use crate::core::{self as cx, Arch, Bottle, BottleConfig, Graphics, Program};
 use eframe::egui::{
     self, Align2, Color32, CornerRadius, FontFamily, FontId, Margin, Rect, RichText, Sense, Stroke, TextStyle, pos2,
@@ -49,6 +54,8 @@ struct Pal {
     card_hover: Color32,
     text: Color32,
     muted: Color32,
+    /// Fondo hundido dentro de ventanas y fichas (en oscuro, la ventana ya es del color de las tarjetas).
+    well: Color32,
 }
 
 fn pal(ui: &egui::Ui) -> Pal {
@@ -58,6 +65,7 @@ fn pal(ui: &egui::Ui) -> Pal {
             card_hover: Color32::from_rgb(0x2E, 0x28, 0x33),
             text: Color32::from_rgb(0xEE, 0xE8, 0xF0),
             muted: Color32::from_rgb(0x9E, 0x95, 0xA3),
+            well: Color32::from_rgb(0x2A, 0x25, 0x2E),
         }
     } else {
         Pal {
@@ -65,6 +73,7 @@ fn pal(ui: &egui::Ui) -> Pal {
             card_hover: Color32::from_rgb(0xF1, 0xEB, 0xEE),
             text: Color32::from_rgb(0x1E, 0x1A, 0x20),
             muted: Color32::from_rgb(0x6F, 0x66, 0x72),
+            well: Color32::from_rgb(0xF3, 0xEE, 0xF0),
         }
     }
 }
@@ -235,6 +244,12 @@ enum Msg {
     Refresh,
     Size(String, u64),
     Installed(String, Vec<(String, String)>),
+    Catalog(Catalog),
+    Icon(String, PathBuf),
+    Step(String, Step),
+    InstallDone(String, cx::Result<catalog::Outcome>),
+    AboutInfo(about::Info),
+    Release(cx::Result<about::Release>),
 }
 
 enum Action {
@@ -264,6 +279,13 @@ enum Action {
     ToggleDefault,
     LoadInstalled,
     Uninstall(String),
+    Discover,
+    ShowApp(String),
+    Install(String),
+    OpenApp(String),
+    GoBottle(String),
+    About,
+    CheckUpdates,
 }
 
 struct App {
@@ -298,6 +320,31 @@ struct App {
     busy: Option<String>,
     status: String,
     error: bool,
+    // Descubrir: el catálogo de instalación
+    discover: bool,
+    catalog: Catalog,
+    icons: HashMap<String, PathBuf>,
+    found: BTreeMap<String, (String, PathBuf)>,
+    search: String,
+    category: Option<String>,
+    detail: Option<String>,
+    target_bottle: Option<String>,
+    target_name: String,
+    installs: BTreeMap<String, (String, Step)>,
+    toast: Option<Toast>,
+    // Acerca de
+    about: bool,
+    about_info: Option<about::Info>,
+    release: Option<cx::Result<about::Release>>,
+}
+
+/// Aviso flotante al terminar una instalación.
+struct Toast {
+    app: String,
+    title: String,
+    body: String,
+    error: bool,
+    at: Instant,
 }
 
 impl App {
@@ -333,10 +380,48 @@ impl App {
             busy: None,
             status: String::new(),
             error: false,
+            discover: false,
+            catalog: catalog::load(),
+            icons: HashMap::new(),
+            found: BTreeMap::new(),
+            search: String::new(),
+            category: None,
+            detail: None,
+            target_bottle: None,
+            target_name: String::new(),
+            installs: BTreeMap::new(),
+            toast: None,
+            about: false,
+            about_info: None,
+            release: None,
         };
         app.selected = app.settings.default_bottle.clone();
         app.refresh();
+        app.discover = app.bottles.is_empty(); // la primera vez, directo al catálogo
+        app.load_icons();
+        app.check_updates();
+        // Catálogo nuevo y logos que falten, sin bloquear la ventana.
+        let (tx, ctx, current) = (app.tx.clone(), app.ctx.clone(), app.catalog.clone());
+        std::thread::spawn(move || {
+            let cat = match catalog::refresh() {
+                Ok(c) => {
+                    let _ = tx.send(Msg::Catalog(c.clone()));
+                    c
+                }
+                Err(_) => current,
+            };
+            for a in cat.apps.iter().filter(|a| catalog::icon(a).is_none()) {
+                if let Ok(p) = catalog::fetch_icon(a) {
+                    let _ = tx.send(Msg::Icon(a.id.clone(), p));
+                }
+            }
+            ctx.request_repaint();
+        });
         app
+    }
+
+    fn load_icons(&mut self) {
+        self.icons = self.catalog.apps.iter().filter_map(|a| Some((a.id.clone(), catalog::icon(a)?))).collect();
     }
 
     fn current(&self) -> Option<&Bottle> {
@@ -350,6 +435,7 @@ impl App {
         self.engines = cx::engines();
         self.engine = cx::engine_for(None).ok();
         self.crossover = cx::crossover_bottles();
+        self.found = catalog::installed(&self.catalog, &self.bottles);
         if self.current().is_none() {
             self.selected = self.bottles.first().map(|b| b.name.clone());
         }
@@ -379,6 +465,14 @@ impl App {
         self.env_text = b.config.env.iter().map(|(k, v)| format!("{k}={v}\n")).collect();
         self.draft = b.config.clone();
         self.programs = cx::programs(&b);
+        // Apps del catálogo instaladas sin acceso directo en el menú Inicio: también a la biblioteca.
+        for app in &self.catalog.apps {
+            if let Some(exe) = catalog::find_in(app, &b)
+                && !self.programs.iter().any(|p| p.path == exe || p.name.eq_ignore_ascii_case(&app.name))
+            {
+                self.programs.push(Program { name: app.name.clone(), path: exe, args: vec![], icon: None, cover: None, hero: None });
+            }
+        }
         self.snapshots = cx::snapshots(&b);
         self.logs = cx::logs(&b).into_iter().take(10).collect();
         self.rename_to = b.name;
@@ -445,6 +539,22 @@ impl App {
                         self.installed = Some(list);
                     }
                 }
+                Msg::Catalog(c) => {
+                    self.catalog = c;
+                    self.load_icons();
+                    self.found = catalog::installed(&self.catalog, &self.bottles);
+                }
+                Msg::Icon(id, path) => {
+                    self.icons.insert(id, path);
+                }
+                Msg::Step(id, step) => {
+                    if let Some(entry) = self.installs.get_mut(&id) {
+                        entry.1 = step;
+                    }
+                }
+                Msg::InstallDone(id, result) => self.install_done(id, result),
+                Msg::AboutInfo(info) => self.about_info = Some(info),
+                Msg::Release(r) => self.release = Some(r),
             }
         }
         // ¿Qué bottles tienen un wineserver vivo? Barato: un `stat` por bottle cada 2 s.
@@ -585,10 +695,12 @@ impl App {
         match action {
             Action::Select(n) => {
                 self.creating = false;
+                self.discover = false;
                 self.select(&n);
             }
             Action::NewForm => {
                 self.creating = true;
+                self.discover = false;
                 self.new_name = unique(&self.bottles, "Mi bottle");
             }
             Action::Create => {
@@ -639,6 +751,21 @@ impl App {
                 }
             }
             Action::Open(p) => report(self, cx::open(&p)),
+            Action::Discover => {
+                self.discover = true;
+                self.creating = false;
+            }
+            Action::ShowApp(id) => self.show_app(id),
+            Action::Install(id) => self.install(id),
+            Action::OpenApp(id) => self.open_app(&id),
+            Action::About => self.open_about(),
+            Action::CheckUpdates => self.check_updates(),
+            Action::GoBottle(name) => {
+                self.discover = false;
+                self.creating = false;
+                self.detail = None;
+                self.select(&name);
+            }
             _ => {}
         }
     }
@@ -648,10 +775,24 @@ impl App {
     fn top_bar(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
         ui.add_space(6.0);
         ui.horizontal(|ui| {
-            let (rect, _) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::hover());
+            let (rect, logo) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::click());
             barrel(ui.painter(), rect);
-            ui.label(RichText::new("Barrica").family(demi()).size(19.0));
+            let name = ui.add(egui::Label::new(RichText::new("Barrica").family(demi()).size(19.0)).sense(Sense::click()));
+            if (logo | name).on_hover_cursor(egui::CursorIcon::PointingHand).on_hover_text("Acerca de Barrica").clicked() {
+                actions.push(Action::About);
+            }
+            if let Some(Ok(r)) = &self.release
+                && r.newer
+            {
+                let pill = RichText::new(format!("Nueva versión {}", r.version)).color(Color32::WHITE).small().family(demi());
+                if ui.add(egui::Button::new(pill).fill(WINE).corner_radius(12)).clicked() {
+                    actions.push(Action::About);
+                }
+            }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.button("Acerca de").clicked() {
+                    actions.push(Action::About);
+                }
                 ui.menu_button("Motor", |ui| {
                     ui.label(RichText::new("Motor propio para bottles nuevos").small().weak());
                     if self.engines.is_empty() {
@@ -697,12 +838,19 @@ impl App {
     fn sidebar(&mut self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
         let p = pal(ui);
         ui.add_space(12.0);
+        if self.discover_nav(ui) {
+            actions.push(Action::Discover);
+        }
+        ui.add_space(14.0);
         ui.label(RichText::new("BOTTLES").size(11.5).color(p.muted).family(demi()));
         ui.add_space(4.0);
         let list_height = (ui.available_height() - 60.0).max(80.0);
+        if self.bottles.is_empty() {
+            ui.label(RichText::new("Todavía ninguno. Instala una app y Barrica le crea el suyo.").small().color(p.muted));
+        }
         egui::ScrollArea::vertical().auto_shrink([false, true]).max_height(list_height).show(ui, |ui| {
             for b in &self.bottles {
-                let selected = !self.creating && self.selected.as_deref() == Some(&b.name);
+                let selected = !self.creating && !self.discover && self.selected.as_deref() == Some(&b.name);
                 let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 54.0), Sense::click());
                 let fill = if selected {
                     WINE
@@ -713,7 +861,11 @@ impl App {
                 };
                 let painter = ui.painter();
                 painter.rect_filled(rect, 10, fill);
-                barrel(painter, Rect::from_min_size(rect.min + vec2(8.0, 10.0), vec2(34.0, 34.0)));
+                let icon = Rect::from_min_size(rect.min + vec2(8.0, 10.0), vec2(34.0, 34.0));
+                match self.bottle_app(b) {
+                    Some(app) => discover::brand_icon(ui, icon.shrink(1.0), app, self.icons.get(&app.id)),
+                    None => barrel(painter, icon),
+                }
                 let (main, sub) =
                     if selected { (Color32::WHITE, Color32::from_white_alpha(190)) } else { (p.text, p.muted) };
                 let star = if self.settings.default_bottle.as_deref() == Some(&b.name) { " ★" } else { "" };
@@ -754,6 +906,11 @@ impl App {
             if let Some(label) = &self.busy {
                 ui.spinner();
                 ui.label(RichText::new(label).small());
+            } else if let Some((id, (_, step))) = self.installs.iter().next() {
+                ui.spinner();
+                let name = self.catalog.app(id).map_or(id.as_str(), |a| a.name.as_str());
+                let more = if self.installs.len() > 1 { format!(" (+{} más)", self.installs.len() - 1) } else { String::new() };
+                ui.label(RichText::new(format!("{name}: {}{more}", step.label())).small());
             } else if !self.status.is_empty() {
                 let text = RichText::new(&self.status).small();
                 ui.label(if self.error { text.color(ui.visuals().error_fg_color) } else { text.weak() });
@@ -770,7 +927,10 @@ impl App {
             ui.heading("Tu bodega está vacía");
             ui.label(RichText::new("Un bottle es un Windows aparte donde instalas programas y juegos.").weak());
             ui.add_space(14.0);
-            if primary(ui, "Crear mi primer bottle", true).clicked() {
+            if primary(ui, "Explorar apps para instalar", true).clicked() {
+                actions.push(Action::Discover);
+            }
+            if ui.button("Crear un bottle vacío").clicked() {
                 actions.push(Action::NewForm);
             }
             if !self.crossover.is_empty() {
@@ -841,7 +1001,11 @@ impl App {
                 };
                 egui::Image::new(uri(hero)).uv(uv).paint_at(ui, rect);
             }
-            None => vgradient(&painter, rect, Color32::from_rgb(0x8E, 0x1B, 0x3F), Color32::from_rgb(0x2A, 0x08, 0x14)),
+            // Un bottle creado para una app del catálogo se viste con su marca.
+            None => match self.bottle_app(b) {
+                Some(app) => discover::brand_banner(ui, rect, app, self.icons.get(&app.id)),
+                None => vgradient(&painter, rect, Color32::from_rgb(0x8E, 0x1B, 0x3F), Color32::from_rgb(0x2A, 0x08, 0x14)),
+            },
         }
         let fade = Rect::from_min_max(pos2(rect.left(), rect.center().y - 30.0), rect.max);
         vgradient(&painter, fade, Color32::TRANSPARENT, Color32::from_black_alpha(215));
@@ -851,7 +1015,7 @@ impl App {
         if b.linked().is_some() {
             subtitle = format!("Motor de CrossOver · {subtitle}");
         }
-        if !b.config.description.is_empty() {
+        if !b.config.description.is_empty() && b.config.description != b.name {
             subtitle = format!("{} · {subtitle}", b.config.description);
         }
         let left = rect.left() + 28.0;
@@ -951,7 +1115,7 @@ impl App {
                             "Este bottle usa el motor de CrossOver: gráficos, MSync y versión de Windows se cambian allí.",
                         );
                         if ui.button("Abrir CrossOver").clicked() {
-                            actions.push(Action::Open("/Applications/CrossOver.app".into()));
+                            actions.push(Action::Open(cx::crossover_app()));
                         }
                     } else {
                         self.settings_view(ui, &b, actions);
@@ -978,7 +1142,16 @@ impl App {
 
     fn library(&self, ui: &mut egui::Ui, actions: &mut Vec<Action>) {
         if self.programs.is_empty() {
-            ui.label(RichText::new("Aún no hay programas. Pulsa «Ejecutar…» y elige un instalador.").weak());
+            ui.label(RichText::new("Aún no hay programas en este bottle.").weak());
+            ui.add_space(6.0);
+            ui.horizontal(|ui| {
+                if primary(ui, "Instalar desde Descubrir", true).clicked() {
+                    actions.push(Action::Discover);
+                }
+                if ui.button("Ejecutar un instalador…").clicked() {
+                    actions.push(Action::RunPicked);
+                }
+            });
             return;
         }
         let (games, apps): (Vec<&Program>, Vec<&Program>) = self.programs.iter().partition(|p| p.cover.is_some());
@@ -1001,7 +1174,8 @@ impl App {
             ui.horizontal_wrapped(|ui| {
                 ui.spacing_mut().item_spacing = vec2(14.0, 14.0);
                 for a in apps {
-                    if app_tile(ui, a).clicked() {
+                    let brand = self.brand_for(a).map(|b| (b, self.icons.get(&b.id)));
+                    if app_tile(ui, a, brand).clicked() {
                         actions.push(Action::Launch(a.clone()));
                     }
                 }
@@ -1184,16 +1358,17 @@ fn game_card(ui: &mut egui::Ui, g: &Program) -> egui::Response {
     resp.on_hover_cursor(egui::CursorIcon::PointingHand).on_hover_text(format!("Jugar a {}", g.name))
 }
 
-/// Tarjeta de aplicación: el icono real si CrossOver lo extrajo; si no, la inicial.
-fn app_tile(ui: &mut egui::Ui, a: &Program) -> egui::Response {
+/// Tarjeta de aplicación: el icono real si CrossOver lo extrajo; si no, el logo del catálogo o la inicial.
+fn app_tile(ui: &mut egui::Ui, a: &Program, brand: Option<(&catalog::App, Option<&PathBuf>)>) -> egui::Response {
     let p = pal(ui);
     let (rect, resp) = ui.allocate_exact_size(vec2(150.0, 128.0), Sense::click());
     let painter = ui.painter();
     painter.rect_filled(rect, 14, if resp.hovered() { p.card_hover } else { p.card });
     let icon = Rect::from_center_size(pos2(rect.center().x, rect.top() + 48.0), vec2(56.0, 56.0));
-    match &a.icon {
-        Some(path) => egui::Image::new(uri(path)).paint_at(ui, icon),
-        None => {
+    match (&a.icon, brand) {
+        (Some(path), _) => egui::Image::new(uri(path)).paint_at(ui, icon),
+        (None, Some((app, logo))) => discover::brand_icon(ui, icon, app, logo),
+        (None, None) => {
             painter.rect_filled(icon, 14, avatar_color(&a.name));
             let initial = a.name.chars().next().unwrap_or('?').to_uppercase().to_string();
             painter.text(icon.center(), Align2::CENTER_CENTER, initial, FontId::new(28.0, demi()), Color32::WHITE);
@@ -1225,6 +1400,8 @@ impl eframe::App for App {
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
                 if self.creating {
                     self.new_bottle_form(ui, &mut actions);
+                } else if self.discover {
+                    self.discover_view(ui, &mut actions);
                 } else if self.current().is_some() {
                     self.bottle_view(ui, &mut actions);
                 } else {
@@ -1232,6 +1409,9 @@ impl eframe::App for App {
                 }
             });
         });
+        self.app_detail(ui.ctx(), &mut actions);
+        self.toast_view(ui.ctx(), &mut actions);
+        self.about_view(ui.ctx(), &mut actions);
         for a in actions {
             self.handle(a);
         }

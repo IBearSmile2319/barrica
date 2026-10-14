@@ -1,0 +1,95 @@
+# Compila Barrica.app con el motor dentro y la publica en Releases.
+#   - Con un tag `v*` (git tag v0.2.0 && git push origin v0.2.0): crea la Release con el .dmg,
+#     el código fuente del motor y los sha256.
+#   - A mano (Actions → Release → Run workflow): deja el .dmg como artefacto, sin publicar nada.
+# La primera vez compila el motor (1-2 h); después lo saca de la caché mientras engine/ no cambie.
+name: Release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.ref }}
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 330
+    env:
+      BARRICA_ENGINE_WORK: /Users/runner/barrica-engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+
+      - name: Motor en caché
+        id: engine
+        uses: actions/cache@v4
+        with:
+          path: |
+            engine/dist
+            /Users/runner/barrica-engine/crossover-sources-*.tar.gz
+            /Users/runner/barrica-engine/addons/nettle-*.tar.gz
+          key: engine-${{ hashFiles('engine/build.sh', 'engine/patches/**') }}
+
+      - name: Herramientas para compilar el motor
+        if: steps.engine.outputs.cache-hit != 'true'
+        run: |
+          brew install bison mingw-w64 autoconf automake libtool cmake
+          # El motor es x86_64: sus pruebas de configure corren bajo Rosetta.
+          /usr/bin/arch -x86_64 /usr/bin/true 2>/dev/null || sudo softwareupdate --install-rosetta --agree-to-license
+
+      - name: Compilar el motor
+        if: steps.engine.outputs.cache-hit != 'true'
+        run: engine/build.sh
+
+      - name: Tests
+        run: cargo test
+
+      - name: Barrica.app (Apple Silicon + Intel) y .dmg
+        run: |
+          cp THIRD_PARTY_NOTICES.md engine/dist/share/licenses/ 2>/dev/null || true
+          UNIVERSAL=1 ./bundle.sh
+          tools/dmg.sh
+
+      - name: Código fuente del motor y sha256
+        run: |
+          tools/engine-sources.sh
+          cd target
+          shasum -a 256 Barrica.dmg barrica-engine-sources-*.tar.gz > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Artefacto (ejecución manual)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Barrica-${{ github.sha }}
+          path: |
+            target/Barrica.dmg
+            target/SHA256SUMS.txt
+          retention-days: 7
+
+      - name: Publicar la Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Barrica ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            **Descarga:** `Barrica.dmg` (Apple Silicon e Intel, macOS 11 o superior). Incluye el motor.
+
+            Arrastra Barrica a Aplicaciones. Como aún no está notarizada por Apple, la primera vez ejecuta en Terminal:
+
+            ```sh
+            xattr -dr com.apple.quarantine /Applications/Barrica.app
+            ```
+
+            `barrica-engine-sources-*.tar.gz` es el código fuente completo del motor (Wine, LGPL-2.1+).
+            Novedades en [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/master/CHANGELOG.md).
+          files: |
+            target/Barrica.dmg
+            target/barrica-engine-sources-*.tar.gz
+            target/SHA256SUMS.txt
