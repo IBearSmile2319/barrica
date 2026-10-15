@@ -331,6 +331,8 @@ struct App {
     detail: Option<String>,
     target_bottle: Option<String>,
     target_name: String,
+    /// La ficha de una app ya instalada muestra el selector para instalarla en otro bottle.
+    another: bool,
     installs: BTreeMap<String, (String, Step)>,
     toast: Option<Toast>,
     // Acerca de
@@ -390,6 +392,7 @@ impl App {
             detail: None,
             target_bottle: None,
             target_name: String::new(),
+            another: false,
             installs: BTreeMap::new(),
             toast: None,
             about: false,

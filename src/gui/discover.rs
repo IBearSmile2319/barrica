@@ -196,6 +196,7 @@ impl App {
         self.target_name = unique(&self.bottles, &app.name);
         // Sin motor propio solo se puede instalar en un bottle que ya existe (p. ej. uno vinculado a CrossOver).
         self.target_bottle = if self.engine.is_some() { None } else { self.bottles.first().map(|b| b.name.clone()) };
+        self.another = false;
         self.detail = Some(id);
     }
 
@@ -220,6 +221,7 @@ impl App {
             self.detail = Some(id);
             return self.fail("Para un bottle nuevo hace falta un motor Wine: elígelo en «Motor», arriba.");
         }
+        self.another = false;
         self.installs.insert(id.clone(), (bottle, Step::Resolving));
         let (tx, ctx) = (self.tx.clone(), self.ctx.clone());
         std::thread::spawn(move || {
@@ -662,7 +664,13 @@ impl App {
 
     fn detail_actions(&mut self, ui: &mut egui::Ui, app: &CatalogApp, actions: &mut Vec<Action>) {
         let p = pal(ui);
-        match self.state(&app.id) {
+        // Bottle donde ya está: no se ofrece en el selector cuando se instala en otro.
+        let installed_in = self.found.get(&app.id).map(|(b, _)| b.clone());
+        let state = match self.state(&app.id) {
+            State::Installed(_) if self.another => State::Idle,
+            s => s,
+        };
+        match state {
             State::Installing(bottle, step) => {
                 ui.label(RichText::new(step.label()).family(demi()).color(p.text));
                 ui.add_space(4.0);
@@ -688,6 +696,13 @@ impl App {
                         }
                     });
                 });
+                ui.add_space(8.0);
+                if ui.button("Instalar en otro bottle").clicked() {
+                    self.another = true;
+                    if self.target_bottle.as_deref() == Some(bottle.as_str()) {
+                        self.target_bottle = None;
+                    }
+                }
             }
             State::Idle => {
                 ui.label(RichText::new("Instalar en").family(demi()).color(p.text));
@@ -700,7 +715,7 @@ impl App {
                     ui,
                     |ui| {
                         ui.selectable_value(&mut self.target_bottle, None, label(&None));
-                        for b in &self.bottles {
+                        for b in self.bottles.iter().filter(|b| Some(&b.name) != installed_in.as_ref()) {
                             let kind = if b.linked().is_some() { "CrossOver" } else { windows_label(&b.config.windows) };
                             ui.selectable_value(&mut self.target_bottle, Some(b.name.clone()), format!("{} · {kind}", b.name));
                         }
