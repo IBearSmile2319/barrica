@@ -261,7 +261,7 @@ impl App {
             Ok((child, log)) => {
                 self.ok(format!("Abriendo «{name}»…"));
                 self.polled = Instant::now() - Duration::from_secs(60);
-                self.watch(child, name, log);
+                self.watch(child, name, log, super::is_steam(&exe));
             }
             Err(e) => self.fail(e),
         }

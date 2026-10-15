@@ -500,11 +500,14 @@ impl App {
 
     /// Espera al proceso en otro hilo (sin zombis). Solo avisa si falló: con Steam, `steam.exe`
     /// termina enseguida aunque el juego siga abierto; para eso está el indicador «En ejecución».
-    fn watch(&self, mut child: Child, label: String, log: PathBuf) {
+    /// `steam`: `steam.exe` sale con código 4 al reiniciarse o al pasar el control a un Steam ya
+    /// abierto, y eso no es un fallo.
+    fn watch(&self, mut child: Child, label: String, log: PathBuf, steam: bool) {
         let (tx, ctx) = (self.tx.clone(), self.ctx.clone());
         std::thread::spawn(move || {
             let msg = match child.wait().ok().and_then(|s| s.code()) {
                 Some(0) | None => Msg::Refresh,
+                Some(4) if steam => Msg::Refresh,
                 Some(c) => Msg::Info(format!("«{label}» terminó con código {c}. Log: {}", log.display())),
             };
             let _ = tx.send(msg);
@@ -589,12 +592,12 @@ impl App {
                 Ok((child, log)) => {
                     self.ok(format!("Abriendo «{}»…", p.name));
                     self.polled = Instant::now() - Duration::from_secs(60);
-                    self.watch(child, p.name, log);
+                    self.watch(child, p.name, log, is_steam(&p.path));
                 }
                 Err(e) => self.fail(e),
             },
             Action::Tool(tool) => match cx::tool(&b, tool) {
-                Ok((child, log)) => self.watch(child, tool.into(), log),
+                Ok((child, log)) => self.watch(child, tool.into(), log, false),
                 Err(e) => self.fail(e),
             },
             Action::OpenC => report(self, cx::open(&b.drive_c())),
@@ -682,7 +685,7 @@ impl App {
             Action::Uninstall(id) => match cx::uninstall(&b, &id) {
                 Ok((child, log)) => {
                     self.installed = None;
-                    self.watch(child, "Desinstalador".into(), log);
+                    self.watch(child, "Desinstalador".into(), log, false);
                 }
                 Err(e) => self.fail(e),
             },
@@ -1468,4 +1471,19 @@ fn choose_file(prompt: &str) -> Option<PathBuf> {
 
 fn choose_save(default_name: &str) -> Option<PathBuf> {
     osa(&format!("POSIX path of (choose file name with prompt \"Exportar bottle\" default name {default_name:?})"))
+}
+
+/// ¿El programa es `steam.exe`? La ruta puede ser de macOS o de Windows (`C:\…\steam.exe`).
+fn is_steam(program: &std::path::Path) -> bool {
+    program.to_string_lossy().rsplit(['/', '\\']).next().is_some_and(|f| f.eq_ignore_ascii_case("steam.exe"))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn steam_exe_by_name() {
+        assert!(super::is_steam(r"C:\Program Files (x86)\Steam\steam.exe".as_ref()));
+        assert!(super::is_steam("/b/drive_c/Program Files (x86)/Steam/Steam.exe".as_ref()));
+        assert!(!super::is_steam("/b/drive_c/Steam/steamwebhelper.exe".as_ref()));
+    }
 }
