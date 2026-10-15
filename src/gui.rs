@@ -1473,9 +1473,13 @@ fn choose_save(default_name: &str) -> Option<PathBuf> {
     osa(&format!("POSIX path of (choose file name with prompt \"Exportar bottle\" default name {default_name:?})"))
 }
 
-/// ¿El programa es `steam.exe`? La ruta puede ser de macOS o de Windows (`C:\…\steam.exe`).
+/// ¿El programa es Steam? `steam.exe` o su acceso directo del menú Inicio (`…/Steam/Steam.lnk`);
+/// la ruta puede ser de macOS o de Windows (`C:\…\steam.exe`).
 fn is_steam(program: &std::path::Path) -> bool {
-    program.to_string_lossy().rsplit(['/', '\\']).next().is_some_and(|f| f.eq_ignore_ascii_case("steam.exe"))
+    let path = program.to_string_lossy();
+    let file = path.rsplit(['/', '\\']).next().unwrap_or_default();
+    let stem = file.rsplit_once('.').map_or(file, |(stem, _)| stem);
+    stem.eq_ignore_ascii_case("steam")
 }
 
 #[cfg(test)]
@@ -1484,6 +1488,9 @@ mod tests {
     fn steam_exe_by_name() {
         assert!(super::is_steam(r"C:\Program Files (x86)\Steam\steam.exe".as_ref()));
         assert!(super::is_steam("/b/drive_c/Program Files (x86)/Steam/Steam.exe".as_ref()));
+        assert!(super::is_steam("/b/drive_c/ProgramData/Microsoft/Windows/Start Menu/Programs/Steam/Steam".as_ref()));
+        assert!(super::is_steam("/b/Start Menu/Programs/Steam/Steam.lnk".as_ref()));
         assert!(!super::is_steam("/b/drive_c/Steam/steamwebhelper.exe".as_ref()));
+        assert!(!super::is_steam("/b/Start Menu/Programs/Steam/Steam Support Center.url".as_ref()));
     }
 }
