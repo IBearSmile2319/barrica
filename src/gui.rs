@@ -241,7 +241,8 @@ enum Msg {
     Done(String),
     Failed(String),
     Info(String),
-    Refresh,
+    /// El lanzador de este programa terminó sin error.
+    Launched(String),
     Size(String, u64),
     Installed(String, Vec<(String, String)>),
     Catalog(Catalog),
@@ -506,8 +507,8 @@ impl App {
         let (tx, ctx) = (self.tx.clone(), self.ctx.clone());
         std::thread::spawn(move || {
             let msg = match child.wait().ok().and_then(|s| s.code()) {
-                Some(0) | None => Msg::Refresh,
-                Some(4) if steam => Msg::Refresh,
+                Some(0) | None => Msg::Launched(label),
+                Some(4) if steam => Msg::Launched(label),
                 Some(c) => Msg::Info(format!("«{label}» terminó con código {c}. Log: {}", log.display())),
             };
             let _ = tx.send(msg);
@@ -532,7 +533,13 @@ impl App {
                     self.fail(s);
                     self.reselect();
                 }
-                Msg::Refresh => self.reselect(),
+                Msg::Launched(label) => {
+                    // Quita «Abriendo «…»…» si nadie lo ha cambiado: el estado ya lo da «En ejecución».
+                    if self.status == format!("Abriendo «{label}»…") {
+                        self.status.clear();
+                    }
+                    self.reselect();
+                }
                 Msg::Size(name, size) => {
                     self.sizes.insert(name, size);
                 }
